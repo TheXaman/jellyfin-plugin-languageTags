@@ -10,30 +10,30 @@
                     <form class="tbsConfigurationPage">
                         <div class="sectionTitleContainer flex align-items-center">
                             <h2 class="sectionTitle">Language Tags</h2>
-                            <a is="emby-linkbutton" class="raised button-alt headerHelpButton emby-button" target="_blank" href="https://github.com/y">Help</a>
+                            <a is="emby-linkbutton" class="raised button-alt headerHelpButton emby-button" target="_blank" href="https://github.com/TheXaman/jellyfin-plugin-languageTags">Help</a>
                         </div>
                         <div class="verticalSection">
                             <p>This plugin scans your movies and tv shows for the available audio tracks and adds language tags to the items.</p>
-                            <br />
                         </div>
+                        <hr />
                         <div class="verticalSection">
-                            <label for="whitelist-language-tags">Whitelist Language Tags (comma-separated):</label>
-                            <input type="text" id="whitelist-language-tags" name="whitelist-language-tags" placeholder="e.g., eng, ger, spa" />
+                            <h3>Whitelist Language Tags</h3>
+                            <label for="whitelist-language-tags">Whitelist (comma-separated):</label>
+                            <input type="text" id="whitelist-language-tags" name="whitelist-language-tags" placeholder="eng, ger, deu, fre, fra" />
                             <div class="fieldDescription">
-                                <p>Specify the language tags you want to whitelist. Only these tags will be added to your media by the plugin.</p>
-                                <p>Language tags are 3-letter codes like "eng" for English, "ger" AND "deu" for German, "fra" AND "fre" for French, etc.</p>
-                                <p>Some languages have two versions based on ther native and english name, e.g. ger and deu or fra and fre.</p>
-                                <p>Separate multiple tags with commas.</p>
-                                <p>Leave empty to allow all language tags.</p>
+                                <p>Specify the language tags you want to whitelist. Only these tags will be added to your media by the plugin. Leave empty to allow all language tags.</p>
+                                <p>Language tags are 3-letter codes like "eng" for English, etc. Some languages have two versions based on their native and English name, e.g "ger" AND "deu" for German, "fra" AND "fre" for French,.</p>
                             </div>
                         </div>
+                        <hr />
                         <div class="checkboxContainer checkboxContainer-withDescription">
+                            <h3>Full Refresh Options</h3>
                             <label>
                                 <input is="emby-checkbox" type="checkbox" id="always-force-full-refresh" name="always-force-full-refresh" />
                                 <span>Always full refresh</span>
                             </label>
                             <div class="fieldDescription checkboxFieldDescription">
-                                <p>When enabled, the plugin will always perform a full refresh of the library when scanning for language tags. This is ressource intensive and should only be enabled if you are experiencing issues with the plugin.</p>
+                                <p>When enabled, the plugin will always perform a full refresh of the library when scanning for language tags. This is resource intensive and should only be enabled if you are experiencing issues with the plugin.</p>
                             </div>
                         </div>
                         <br />
