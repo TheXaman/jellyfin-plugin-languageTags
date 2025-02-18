@@ -28,6 +28,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
     private readonly ICollectionManager _collectionManager;
     private readonly HashSet<string> _queuedTmdbCollectionIds;
     private readonly ILogger<LanguageTagsManager> _logger;
+    private static readonly char[] Separator = new[] { ',' };
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LanguageTagsManager"/> class.
@@ -445,6 +446,17 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private void AddLanguageTags(BaseItem item, List<string> languages)
     {
+        // Get the whitelist of language tags
+        var whitelist = Plugin.Instance?.Configuration?.WhitelistLanguageTags ?? string.Empty;
+        var whitelistArray = whitelist.Split(Separator, StringSplitOptions.RemoveEmptyEntries).Select(lang => lang.Trim()).ToList();
+        // Remmove duplicates
+        whitelistArray = whitelistArray.Distinct().ToList();
+        // Remove invalid tags (not ISO 639-2/B language codes)
+        whitelistArray = whitelistArray.Where(lang => lang.Length == 3).ToList();
+
+        // Filter out tags that are not in the whitelist
+        languages = languages.Where(lang => whitelistArray.Contains(lang)).ToList();
+
         foreach (var language in languages)
         {
             string tag = $"language_{language}";

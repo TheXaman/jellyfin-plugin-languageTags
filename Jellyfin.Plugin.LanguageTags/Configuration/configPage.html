@@ -16,6 +16,17 @@
                             <p>This plugin scans your movies and tv shows for the available audio tracks and adds language tags to the items.</p>
                             <br />
                         </div>
+                        <div class="verticalSection">
+                            <label for="whitelist-language-tags">Whitelist Language Tags (comma-separated):</label>
+                            <input type="text" id="whitelist-language-tags" name="whitelist-language-tags" placeholder="e.g., eng, ger, spa" />
+                            <div class="fieldDescription">
+                                <p>Specify the language tags you want to whitelist. Only these tags will be added to your media by the plugin.</p>
+                                <p>Language tags are 3-letter codes like "eng" for English, "ger" AND "deu" for German, "fra" AND "fre" for French, etc.</p>
+                                <p>Some languages have two versions based on ther native and english name, e.g. ger and deu or fra and fre.</p>
+                                <p>Separate multiple tags with commas.</p>
+                                <p>Leave empty to allow all language tags.</p>
+                            </div>
+                        </div>
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <label>
                                 <input is="emby-checkbox" type="checkbox" id="always-force-full-refresh" name="always-force-full-refresh" />
@@ -39,6 +50,7 @@
                     var page = this;
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                         document.getElementById("always-force-full-refresh").checked = config.AlwaysForceFullRefresh;
+                        document.getElementById("whitelist-language-tags").value = config.WhitelistLanguageTags || "";
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -48,6 +60,7 @@
 
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                         config.AlwaysForceFullRefresh = document.getElementById("always-force-full-refresh").checked;
+                        config.WhitelistLanguageTags = document.getElementById("whitelist-language-tags").value;
 
                         ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                     });
