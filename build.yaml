@@ -1,0 +1,17 @@
+---
+name: "Language Tags"
+guid: "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb"
+version: "1.0.0.0"
+targetAbi: "10.9.0.0"
+framework: "net8.0"
+overview: >
+  This plugin adds language tags to media items.
+description: >
+  This plugin adds language tags to media items 
+  based on the languages of their audio tracks.
+category: "General"
+owner: "jellyfin"
+artifacts:
+  - "Jellyfin.Plugin.LanguageTags.dll"
+changelog: >
+  changelog

@@ -1,0 +1,34 @@
+# Ignore build artifacts
+bin/
+obj/
+
+# Ignore user-specific files
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Ignore temporary files
+*.tmp
+*.temp
+*.log
+
+# Ignore backup files
+*.bak
+*.old
+
+# Ignore package directories
+node_modules/
+packages/
+
+# Ignore generated files
+*.generated.cs
+*.designer.cs
+*.g.cs
+*.g.i.cs
+
+# Ignore other unnecessary files
+*.DS_Store
+Thumbs.db
