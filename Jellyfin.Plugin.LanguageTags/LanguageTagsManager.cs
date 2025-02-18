@@ -202,13 +202,13 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 // Add language tags to the season
                 if (seasonLanguages.Count > 0)
                 {
-                    await Task.Run(() => AddLanguageTags(season, seasonLanguages), cancellationToken).ConfigureAwait(false);
+                    seasonLanguages = await Task.Run(() => AddLanguageTags(season, seasonLanguages), cancellationToken).ConfigureAwait(false);
                     _logger.LogInformation("Added tags for SEASON {SeasonName} of {SeriesName}: {Languages}", season.Name, series.Name, string.Join(", ", seasonLanguages));
                 }
                 else
                 {
                     await Task.Run(() => AddLanguageTags(season, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogWarning("No language information found for SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
+                    _logger.LogWarning("No language information found for SEASON {SeasonName} of {SeriesName}, added language_und(efined)", season.Name, series.Name);
                 }
             }
 
@@ -219,13 +219,13 @@ public class LanguageTagsManager : IHostedService, IDisposable
             seriesLanguages = seriesLanguages.Distinct().ToList();
             if (seriesLanguages.Count > 0)
             {
-                await Task.Run(() => AddLanguageTags(series, seriesLanguages), cancellationToken).ConfigureAwait(false);
+                seriesLanguages = await Task.Run(() => AddLanguageTags(series, seriesLanguages), cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Added tags for SERIES {SeriesName}: {Languages}", series.Name, string.Join(", ", seriesLanguages));
             }
             else
             {
                 await Task.Run(() => AddLanguageTags(series, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("No language information found for SERIES {SeriesName}", series.Name);
+                _logger.LogWarning("No language information found for SERIES {SeriesName}, added language_und(efined)", series.Name);
             }
 
             Interlocked.Increment(ref processedSeries);
@@ -289,13 +289,13 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 collectionLanguages = collectionLanguages.Distinct().ToList();
                 if (collectionLanguages.Count > 0)
                 {
-                    await Task.Run(() => AddLanguageTags(boxSet, collectionLanguages), cancellationToken).ConfigureAwait(false);
+                    collectionLanguages = await Task.Run(() => AddLanguageTags(boxSet, collectionLanguages), cancellationToken).ConfigureAwait(false);
                     _logger.LogInformation("Added tags for {BoxSetName}: {Languages}", boxSet.Name, string.Join(", ", collectionLanguages));
                 }
                 else
                 {
                     await Task.Run(() => AddLanguageTags(boxSet, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogWarning("No language information found for {BoxSetName}", boxSet.Name);
+                    _logger.LogWarning("No language information found for {BoxSetName}, added language_und(efined)", boxSet.Name);
                 }
             }
         }).ConfigureAwait(false);
@@ -352,31 +352,31 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private async Task<List<string>> ProcessVideo(Video video, CancellationToken cancellationToken)
     {
-        var languages = new List<string>();
+        var videoLanguages = new List<string>();
         try
         {
             // Step 1: Run FFmpeg
             string ffmpegOutput = await Task.Run(() => RunFFmpeg(video.Path)).ConfigureAwait(false);
 
             // Step 2: Extract languages
-            languages = await Task.Run(() => ExtractLanguages(ffmpegOutput)).ConfigureAwait(false);
+            videoLanguages = await Task.Run(() => ExtractLanguages(ffmpegOutput)).ConfigureAwait(false);
 
             // Filter out tags that are not ISO 639-2/B language codes
-            languages = languages.Where(lang => lang.Length == 3).ToList();
+            videoLanguages = videoLanguages.Where(lang => lang.Length == 3).ToList();
 
-            if (languages.Count > 0)
+            if (videoLanguages.Count > 0)
             {
                 // Step 2.5: Remove duplicates
-                languages = languages.Distinct().ToList();
+                videoLanguages = videoLanguages.Distinct().ToList();
 
                 // Step 3: Add language tags
-                await Task.Run(() => AddLanguageTags(video, languages), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Added tags for VIDEO {VideoName}: {Languages}", video.Name, string.Join(", ", languages));
+                videoLanguages = await Task.Run(() => AddLanguageTags(video, videoLanguages), cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("Added tags for VIDEO {VideoName}: {VideoLanguages}", video.Name, string.Join(", ", videoLanguages));
             }
             else
             {
                 await Task.Run(() => AddLanguageTags(video, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("No language information found for VIDEO {VideoName}", video.Name);
+                _logger.LogWarning("No language information found for VIDEO {VideoName}, added language_und(efined)", video.Name);
             }
         }
         catch (Exception ex)
@@ -384,7 +384,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             _logger.LogError(ex, "Error processing {VideoName}", video.Name);
         }
 
-        return languages;
+        return videoLanguages;
     }
 
     private bool HasLanguageTags(BaseItem item)
@@ -453,11 +453,13 @@ public class LanguageTagsManager : IHostedService, IDisposable
         return languages;
     }
 
-    private void AddLanguageTags(BaseItem item, List<string> languages)
+    private List<string> AddLanguageTags(BaseItem item, List<string> languages)
     {
         // Get the whitelist of language tags
         var whitelist = Plugin.Instance?.Configuration?.WhitelistLanguageTags ?? string.Empty;
         var whitelistArray = whitelist.Split(Separator, StringSplitOptions.RemoveEmptyEntries).Select(lang => lang.Trim()).ToList();
+        // Add und(efined) to the whitelist
+        whitelistArray.Add("und");
         // Remmove duplicates
         whitelistArray = whitelistArray.Distinct().ToList();
         // Remove invalid tags (not ISO 639-2/B language codes)
@@ -489,6 +491,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
         {
             _logger.LogInformation("Filtered out languages for {ItemName}: {Languages}", item.Name, string.Join(", ", filteredOutLanguages));
         }
+
+        return languages;
     }
 
     /// <inheritdoc/>
