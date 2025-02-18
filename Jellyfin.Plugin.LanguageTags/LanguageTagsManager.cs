@@ -95,7 +95,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 {
                     if (!fullScan)
                     {
-                        _logger.LogInformation("Language tags already exist for {VideoName}", video.Name);
+                        _logger.LogInformation("Tags exist, skipping {VideoName}", video.Name);
                         return;
                     }
 
@@ -142,16 +142,25 @@ public class LanguageTagsManager : IHostedService, IDisposable
             var seasons = GetSeasonsFromSeries(series);
             if (seasons == null || seasons.Count == 0)
             {
-                _logger.LogWarning("No seasons found in series {SeriesName}", series.Name);
+                _logger.LogWarning("No seasons found in SERIES {SeriesName}", series.Name);
                 return;
             }
 
-            // Get language tags from all episodes in the series
+            // Get language tags from all seasons in the series
+            _logger.LogInformation("Processing SERIES {SeriesName}", series.Name);
             var seriesLanguages = new List<string>();
             foreach (var season in seasons)
             {
                 var episodes = GetEpisodesFromSeason(season);
 
+                if (episodes == null || episodes.Count == 0)
+                {
+                    _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
+                    return;
+                }
+
+                // Get language tags from all episodes in the season
+                _logger.LogInformation("Processing SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
                 var seasonLanguages = new List<string>();
                 foreach (var episode in episodes)
                 {
@@ -167,7 +176,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         {
                             if (!fullScan)
                             {
-                                _logger.LogInformation("Language tags already exist for {VideoName}", video.Name);
+                                _logger.LogInformation("Tags exist, skipping {VideoName}", video.Name);
                                 var episodeLanguagesTmp = GetLanguageTags(video);
                                 seasonLanguages.AddRange(episodeLanguagesTmp);
                                 return;
@@ -194,12 +203,12 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 if (seasonLanguages.Count > 0)
                 {
                     await Task.Run(() => AddLanguageTags(season, seasonLanguages), cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("Added tags for {SeasonName}: {Languages}", season.Name, string.Join(", ", seasonLanguages));
+                    _logger.LogInformation("Added tags for SEASON {SeasonName} of {SeriesName}: {Languages}", season.Name, series.Name, string.Join(", ", seasonLanguages));
                 }
                 else
                 {
                     await Task.Run(() => AddLanguageTags(season, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("No language information found for {SeasonName}", season.Name);
+                    _logger.LogWarning("No language information found for SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
                 }
             }
 
@@ -211,12 +220,12 @@ public class LanguageTagsManager : IHostedService, IDisposable
             if (seriesLanguages.Count > 0)
             {
                 await Task.Run(() => AddLanguageTags(series, seriesLanguages), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Added tags for {SeriesName}: {Languages}", series.Name, string.Join(", ", seriesLanguages));
+                _logger.LogInformation("Added tags for SERIES {SeriesName}: {Languages}", series.Name, string.Join(", ", seriesLanguages));
             }
             else
             {
                 await Task.Run(() => AddLanguageTags(series, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("No language information found for {SeriesName}", series.Name);
+                _logger.LogWarning("No language information found for SERIES {SeriesName}", series.Name);
             }
 
             Interlocked.Increment(ref processedSeries);
@@ -286,7 +295,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 else
                 {
                     await Task.Run(() => AddLanguageTags(boxSet, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("No language information found for {BoxSetName}", boxSet.Name);
+                    _logger.LogWarning("No language information found for {BoxSetName}", boxSet.Name);
                 }
             }
         }).ConfigureAwait(false);
@@ -362,12 +371,12 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
                 // Step 3: Add language tags
                 await Task.Run(() => AddLanguageTags(video, languages), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Added tags for {VideoName}: {Languages}", video.Name, string.Join(", ", languages));
+                _logger.LogInformation("Added tags for VIDEO {VideoName}: {Languages}", video.Name, string.Join(", ", languages));
             }
             else
             {
                 await Task.Run(() => AddLanguageTags(video, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("No language information found for {VideoName}", video.Name);
+                _logger.LogWarning("No language information found for VIDEO {VideoName}", video.Name);
             }
         }
         catch (Exception ex)
@@ -454,6 +463,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
         // Remove invalid tags (not ISO 639-2/B language codes)
         whitelistArray = whitelistArray.Where(lang => lang.Length == 3).ToList();
 
+        // Capture the filtered out languages
+        var filteredOutLanguages = languages.Where(lang => !whitelistArray.Contains(lang)).ToList();
+
         // Filter out tags that are not in the whitelist
         languages = languages.Where(lang => whitelistArray.Contains(lang)).ToList();
 
@@ -471,6 +483,12 @@ public class LanguageTagsManager : IHostedService, IDisposable
         // Save the changes
         var parent = item.GetParent();
         _libraryManager.UpdateItemAsync(item: item, parent: parent, updateReason: ItemUpdateType.MetadataEdit, cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
+
+        // Log filtered out languages
+        if (filteredOutLanguages.Count > 0)
+        {
+            _logger.LogInformation("Filtered out languages for {ItemName}: {Languages}", item.Name, string.Join(", ", filteredOutLanguages));
+        }
     }
 
     /// <inheritdoc/>
