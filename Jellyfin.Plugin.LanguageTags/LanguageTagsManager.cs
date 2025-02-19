@@ -55,22 +55,26 @@ public class LanguageTagsManager : IHostedService, IDisposable
         var alwaysForceFullRefresh = Plugin.Instance?.Configuration?.AlwaysForceFullRefresh ?? false;
         fullScan = fullScan || alwaysForceFullRefresh;
 
+        // Get configuration value for SynchronousRefresh
+        var synchronously = Plugin.Instance?.Configuration?.SynchronousRefresh ?? false;
+
         // Process movies
-        await ProcessLibraryMovies(fullScan).ConfigureAwait(false);
+        await ProcessLibraryMovies(fullScan, synchronously).ConfigureAwait(false);
 
         // Process series
-        await ProcessLibrarySeries(fullScan).ConfigureAwait(false);
+        await ProcessLibrarySeries(fullScan, synchronously).ConfigureAwait(false);
 
         // Process box sets / collections
-        await ProcessLibraryCollections(fullScan).ConfigureAwait(false);
+        await ProcessLibraryCollections(fullScan, synchronously).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Processes the library movies.
+    /// Processes the libraries movies.
     /// </summary>
     /// <param name="fullScan">if set to <c>true</c> [full scan].</param>
+    /// <param name="synchronously">if set to <c>true</c> [synchronously].</param>
     /// <returns>A <see cref="Task"/> representing the library scan progress.</returns>
-    private async Task ProcessLibraryMovies(bool fullScan)
+    private async Task ProcessLibraryMovies(bool fullScan, bool synchronously)
     {
         _logger.LogInformation("****************************");
         _logger.LogInformation("*    Processing movies...  *");
@@ -81,42 +85,60 @@ public class LanguageTagsManager : IHostedService, IDisposable
         int totalMovies = movies.Count;
         int processedMovies = 0;
 
-        await Parallel.ForEachAsync(movies, async (item, cancellationToken) =>
+        if (!synchronously)
         {
-            if (item is Video video)
+            await Parallel.ForEachAsync(movies, async (item, cancellationToken) =>
             {
-                if (!HasValidPath(video.Path))
-                {
-                    _logger.LogWarning("Invalid file path for {VideoName}", video.Name);
-                    return;
-                }
+                await ProcessMovie(item, fullScan, cancellationToken).ConfigureAwait(false);
 
-                if (HasLanguageTags(video))
-                {
-                    if (!fullScan)
-                    {
-                        _logger.LogInformation("Tags exist, skipping {VideoName}", video.Name);
-                        return;
-                    }
+                Interlocked.Increment(ref processedMovies);
+            }).ConfigureAwait(false);
+        }
+        else
+        {
+            foreach (var movie in movies)
+            {
+                await ProcessMovie(movie, fullScan, CancellationToken.None).ConfigureAwait(false);
 
-                    RemoveLanguageTags(item);
-                }
-
-                await ProcessVideo(video, cancellationToken).ConfigureAwait(false);
+                Interlocked.Increment(ref processedMovies);
             }
-
-            Interlocked.Increment(ref processedMovies);
-        }).ConfigureAwait(false);
+        }
 
         _logger.LogInformation("Processed {ProcessedMovies} of {TotalMovies} movies", processedMovies, totalMovies);
     }
 
+    private async Task ProcessMovie(Movie movie, bool fullScan, CancellationToken cancellationToken)
+    {
+        if (movie is Video video)
+        {
+            if (!HasValidPath(video.Path))
+            {
+                _logger.LogWarning("Invalid file path for {VideoName}", video.Name);
+                return;
+            }
+
+            if (HasLanguageTags(video))
+            {
+                if (!fullScan)
+                {
+                    _logger.LogInformation("Tags exist, skipping {VideoName}", video.Name);
+                    return;
+                }
+
+                RemoveLanguageTags(video);
+            }
+
+            await ProcessVideo(video, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>
-    /// Processes the library series.
+    /// Processes the libraries series.
     /// </summary>
     /// <param name="fullScan">if set to <c>true</c> [full scan].</param>
+    /// <param name="synchronously">if set to <c>true</c> [synchronously].</param>
     /// <returns>A <see cref="Task"/> representing the library scan progress.</returns>
-    private async Task ProcessLibrarySeries(bool fullScan)
+    private async Task ProcessLibrarySeries(bool fullScan, bool synchronously)
     {
         _logger.LogInformation("****************************");
         _logger.LogInformation("*    Processing series...  *");
@@ -127,119 +149,142 @@ public class LanguageTagsManager : IHostedService, IDisposable
         var totalSeries = seriesList.Count;
         var processedSeries = 0;
 
-        // Process each series
-        await Parallel.ForEachAsync(seriesList, async (seriesBaseItem, cancellationToken) =>
+        if (!synchronously)
         {
-            // Check if the series is a valid series
-            var series = seriesBaseItem as Series;
-            if (series == null)
+            await Parallel.ForEachAsync(seriesList, async (seriesBaseItem, cancellationToken) =>
             {
-                _logger.LogWarning("Series is null!");
-                return;
-            }
-
-            // Get all seasons in the series
-            var seasons = GetSeasonsFromSeries(series);
-            if (seasons == null || seasons.Count == 0)
-            {
-                _logger.LogWarning("No seasons found in SERIES {SeriesName}", series.Name);
-                return;
-            }
-
-            // Get language tags from all seasons in the series
-            _logger.LogInformation("Processing SERIES {SeriesName}", series.Name);
-            var seriesLanguages = new List<string>();
-            foreach (var season in seasons)
-            {
-                var episodes = GetEpisodesFromSeason(season);
-
-                if (episodes == null || episodes.Count == 0)
+                // Check if the series is a valid series
+                var series = seriesBaseItem as Series;
+                if (series == null)
                 {
-                    _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
+                    _logger.LogWarning("Series is null!");
                     return;
                 }
 
-                // Get language tags from all episodes in the season
-                _logger.LogInformation("Processing SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
-                var seasonLanguages = new List<string>();
-                foreach (var episode in episodes)
-                {
-                    if (episode is Video video)
-                    {
-                        if (!HasValidPath(video.Path))
-                        {
-                            _logger.LogWarning("Invalid file path for {VideoName}", video.Name);
-                            return;
-                        }
-
-                        if (HasLanguageTags(video))
-                        {
-                            if (!fullScan)
-                            {
-                                _logger.LogInformation("Tags exist, skipping {VideoName}", video.Name);
-                                var episodeLanguagesTmp = GetLanguageTags(video);
-                                seasonLanguages.AddRange(episodeLanguagesTmp);
-                                return;
-                            }
-
-                            RemoveLanguageTags(episode);
-                        }
-
-                        var episodeLanguages = await ProcessVideo(video, cancellationToken).ConfigureAwait(false);
-                        seasonLanguages.AddRange(episodeLanguages);
-                    }
-                }
-
-                // Make sure we have unique language tags
-                seasonLanguages = seasonLanguages.Distinct().ToList();
-
-                // Add the season languages to the series languages
-                seriesLanguages.AddRange(seasonLanguages);
-
-                // Remove existing language tags
-                RemoveLanguageTags(season);
-
-                // Add language tags to the season
-                if (seasonLanguages.Count > 0)
-                {
-                    seasonLanguages = await Task.Run(() => AddLanguageTags(season, seasonLanguages), cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("Added tags for SEASON {SeasonName} of {SeriesName}: {Languages}", season.Name, series.Name, string.Join(", ", seasonLanguages));
-                }
-                else
-                {
-                    await Task.Run(() => AddLanguageTags(season, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogWarning("No language information found for SEASON {SeasonName} of {SeriesName}, added language_und(efined)", season.Name, series.Name);
-                }
-            }
-
-            // Remove existing language tags
-            RemoveLanguageTags(series);
-
-            // Add language tags to the series
-            seriesLanguages = seriesLanguages.Distinct().ToList();
-            if (seriesLanguages.Count > 0)
+                await ProcessSeries(series, fullScan, cancellationToken).ConfigureAwait(false);
+                Interlocked.Increment(ref processedSeries);
+            }).ConfigureAwait(false);
+        }
+        else
+        {
+            foreach (var seriesBaseItem in seriesList)
             {
-                seriesLanguages = await Task.Run(() => AddLanguageTags(series, seriesLanguages), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Added tags for SERIES {SeriesName}: {Languages}", series.Name, string.Join(", ", seriesLanguages));
-            }
-            else
-            {
-                await Task.Run(() => AddLanguageTags(series, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("No language information found for SERIES {SeriesName}, added language_und(efined)", series.Name);
-            }
+                // Check if the series is a valid series
+                var series = seriesBaseItem as Series;
+                if (series == null)
+                {
+                    _logger.LogWarning("Series is null!");
+                    return;
+                }
 
-            Interlocked.Increment(ref processedSeries);
-        }).ConfigureAwait(false);
+                await ProcessSeries(series, fullScan, CancellationToken.None).ConfigureAwait(false);
+                Interlocked.Increment(ref processedSeries);
+            }
+        }
 
         _logger.LogInformation("Processed {ProcessedSeries} of {TotalSeries} series", processedSeries, totalSeries);
     }
 
+    private async Task ProcessSeries(Series series, bool fullScan, CancellationToken cancellationToken)
+    {
+        // Get all seasons in the series
+        var seasons = GetSeasonsFromSeries(series);
+        if (seasons == null || seasons.Count == 0)
+        {
+            _logger.LogWarning("No seasons found in SERIES {SeriesName}", series.Name);
+            return;
+        }
+
+        // Get language tags from all seasons in the series
+        _logger.LogInformation("Processing SERIES {SeriesName}", series.Name);
+        var seriesLanguages = new List<string>();
+        foreach (var season in seasons)
+        {
+            var episodes = GetEpisodesFromSeason(season);
+
+            if (episodes == null || episodes.Count == 0)
+            {
+                _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
+                return;
+            }
+
+            // Get language tags from all episodes in the season
+            _logger.LogInformation("Processing SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
+            var seasonLanguages = new List<string>();
+            foreach (var episode in episodes)
+            {
+                if (episode is Video video)
+                {
+                    if (!HasValidPath(video.Path))
+                    {
+                        _logger.LogWarning("Invalid file path for {VideoName}", video.Name);
+                        return;
+                    }
+
+                    if (HasLanguageTags(video))
+                    {
+                        if (!fullScan)
+                        {
+                            _logger.LogInformation("Tags exist, skipping {VideoName}", video.Name);
+                            var episodeLanguagesTmp = GetLanguageTags(video);
+                            seasonLanguages.AddRange(episodeLanguagesTmp);
+                            return;
+                        }
+
+                        RemoveLanguageTags(episode);
+                    }
+
+                    var episodeLanguages = await ProcessVideo(video, cancellationToken).ConfigureAwait(false);
+                    seasonLanguages.AddRange(episodeLanguages);
+                }
+            }
+
+            // Make sure we have unique language tags
+            seasonLanguages = seasonLanguages.Distinct().ToList();
+
+            // Add the season languages to the series languages
+            seriesLanguages.AddRange(seasonLanguages);
+
+            // Remove existing language tags
+            RemoveLanguageTags(season);
+
+            // Add language tags to the season
+            if (seasonLanguages.Count > 0)
+            {
+                seasonLanguages = await Task.Run(() => AddLanguageTags(season, seasonLanguages), cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("Added tags for SEASON {SeasonName} of {SeriesName}: {Languages}", season.Name, series.Name, string.Join(", ", seasonLanguages));
+            }
+            else
+            {
+                await Task.Run(() => AddLanguageTags(season, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
+                _logger.LogWarning("No language information found for SEASON {SeasonName} of {SeriesName}, added language_und(efined)", season.Name, series.Name);
+            }
+        }
+
+        // Remove existing language tags
+        RemoveLanguageTags(series);
+
+        // Add language tags to the series
+        seriesLanguages = seriesLanguages.Distinct().ToList();
+        if (seriesLanguages.Count > 0)
+        {
+            seriesLanguages = await Task.Run(() => AddLanguageTags(series, seriesLanguages), cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Added tags for SERIES {SeriesName}: {Languages}", series.Name, string.Join(", ", seriesLanguages));
+        }
+        else
+        {
+            await Task.Run(() => AddLanguageTags(series, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
+            _logger.LogWarning("No language information found for SERIES {SeriesName}, added language_und(efined)", series.Name);
+        }
+    }
+
     /// <summary>
-    /// Processes the library collections.
+    /// Processes the libraries collections.
     /// </summary>
     /// <param name="fullScan">if set to <c>true</c> [full scan].</param>
+    /// <param name="synchronously">if set to <c>true</c> [synchronously].</param>
     /// <returns>A <see cref="Task"/> representing the library scan progress.</returns>
-    private async Task ProcessLibraryCollections(bool fullScan)
+    private async Task ProcessLibraryCollections(bool fullScan, bool synchronously)
     {
         _logger.LogInformation("******************************");
         _logger.LogInformation("*  Processing collections... *");
@@ -249,58 +294,73 @@ public class LanguageTagsManager : IHostedService, IDisposable
         var collections = GetBoxSetsFromLibrary();
         int totalCollections = collections.Count;
 
-        await Parallel.ForEachAsync(collections, async (item, cancellationToken) =>
+        if (!synchronously)
         {
-            if (item is BoxSet boxSet)
+            await Parallel.ForEachAsync(collections, async (item, cancellationToken) =>
             {
-                var collectionItems = boxSet.GetItemList(new InternalItemsQuery
-                {
-                    IncludeItemTypes = [BaseItemKind.Movie],
-                    Recursive = true
-                }).Select(m => m as Movie).ToList();
+                await ProcessCollection(item, fullScan, cancellationToken).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+        else
+        {
+            foreach (var collection in collections)
+            {
+                await ProcessCollection(collection, fullScan, CancellationToken.None).ConfigureAwait(false);
+            }
+        }
 
-                if (collectionItems.Count == 0)
+        _logger.LogInformation("Processed {TotalCollections} collections", totalCollections);
+    }
+
+    private async Task ProcessCollection(BoxSet collection, bool fullRefresh, CancellationToken cancellationToken)
+    {
+        if (collection is BoxSet boxSet)
+        {
+            var collectionItems = boxSet.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = [BaseItemKind.Movie],
+                Recursive = true
+            }).Select(m => m as Movie).ToList();
+
+            if (collectionItems.Count == 0)
+            {
+                _logger.LogWarning("No movies found in box set {BoxSetName}", boxSet.Name);
+                return;
+            }
+
+            // Remove existing language tags
+            RemoveLanguageTags(collection);
+
+            // Get language tags from all movies in the box set
+            var collectionLanguages = new List<string>();
+            foreach (var movie in collectionItems)
+            {
+                if (movie == null)
                 {
-                    _logger.LogWarning("No movies found in box set {BoxSetName}", boxSet.Name);
+                    _logger.LogWarning("Movie is null!");
                     return;
                 }
 
-                // Remove existing language tags
-                RemoveLanguageTags(item);
-
-                // Get language tags from all movies in the box set
-                var collectionLanguages = new List<string>();
-                foreach (var movie in collectionItems)
-                {
-                    if (movie == null)
-                    {
-                        _logger.LogWarning("Movie is null!");
-                        return;
-                    }
-
-                    var movieLanguages = GetLanguageTags(movie);
-                    collectionLanguages.AddRange(movieLanguages);
-                }
-
-                // Strip "language_" prefix
-                collectionLanguages = collectionLanguages.Select(lang => lang.Substring(9)).ToList();
-
-                // Add language tags to the box set
-                collectionLanguages = collectionLanguages.Distinct().ToList();
-                if (collectionLanguages.Count > 0)
-                {
-                    collectionLanguages = await Task.Run(() => AddLanguageTags(boxSet, collectionLanguages), cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("Added tags for {BoxSetName}: {Languages}", boxSet.Name, string.Join(", ", collectionLanguages));
-                }
-                else
-                {
-                    await Task.Run(() => AddLanguageTags(boxSet, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogWarning("No language information found for {BoxSetName}, added language_und(efined)", boxSet.Name);
-                }
+                var movieLanguages = GetLanguageTags(movie);
+                collectionLanguages.AddRange(movieLanguages);
             }
-        }).ConfigureAwait(false);
 
-        _logger.LogInformation("Processed {TotalCollections} collections", totalCollections);
+            // Strip "language_" prefix
+            collectionLanguages = collectionLanguages.Select(lang => lang.Substring(9)).ToList();
+
+            // Add language tags to the box set
+            collectionLanguages = collectionLanguages.Distinct().ToList();
+            if (collectionLanguages.Count > 0)
+            {
+                collectionLanguages = await Task.Run(() => AddLanguageTags(boxSet, collectionLanguages), cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("Added tags for {BoxSetName}: {Languages}", boxSet.Name, string.Join(", ", collectionLanguages));
+            }
+            else
+            {
+                await Task.Run(() => AddLanguageTags(boxSet, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
+                _logger.LogWarning("No language information found for {BoxSetName}, added language_und(efined)", boxSet.Name);
+            }
+        }
     }
 
     private List<Movie> GetMoviesFromLibrary()

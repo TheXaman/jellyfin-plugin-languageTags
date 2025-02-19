@@ -36,6 +36,19 @@
                                 <p>When enabled, the plugin will always perform a full refresh of the library when scanning for language tags. This is resource intensive and should only be enabled if you are experiencing issues with the plugin.</p>
                             </div>
                         </div>
+                        <hr />
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <h3>Synchronous Refresh Option</h3>
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="synchronous-refresh" name="synchronous-refresh" />
+                                <span>Synchronous refresh</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                <p>NOT RECOMMENDED</p>
+                                <p>When enabled, the plugin will perform a synchronous refresh of the library when scanning for language tags. This takes significantly longer, but is less ressource intensive.</p>
+                                <p>Usefull for low powered setup like a Raspberry Pi.</p>
+                            </div>
+                        </div>
                         <br />
                         <button is="emby-button" type="button" class="raised block" id="refresh-library"><span>Force full refresh ONCE</span></button>
                         <button is="emby-button" type="submit" class="raised button-submit block"><span>${Save}</span></button>
@@ -51,6 +64,7 @@
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                         document.getElementById("always-force-full-refresh").checked = config.AlwaysForceFullRefresh;
                         document.getElementById("whitelist-language-tags").value = config.WhitelistLanguageTags || "";
+                        document.getElementById("synchronous-refresh").checked = config.SynchronousRefresh;
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -61,6 +75,7 @@
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                         config.AlwaysForceFullRefresh = document.getElementById("always-force-full-refresh").checked;
                         config.WhitelistLanguageTags = document.getElementById("whitelist-language-tags").value;
+                        config.SynchronousRefresh = document.getElementById("synchronous-refresh").checked;
 
                         ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                     });

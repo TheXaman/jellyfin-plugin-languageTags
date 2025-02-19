@@ -14,6 +14,7 @@ public class PluginConfiguration : BasePluginConfiguration
     {
         AlwaysForceFullRefresh = false;
         WhitelistLanguageTags = string.Empty;
+        SynchronousRefresh = false;
     }
 
     /// <summary>
@@ -25,4 +26,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets the whitelist of language tags.
     /// </summary>
     public string WhitelistLanguageTags { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to refresh synchronously.
+    /// </summary>
+    public bool SynchronousRefresh { get; set; }
 }
