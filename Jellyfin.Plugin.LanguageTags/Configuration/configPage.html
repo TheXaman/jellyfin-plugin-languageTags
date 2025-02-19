@@ -36,6 +36,12 @@
                                 <p>When enabled, the plugin will always perform a full refresh of the library when scanning for language tags. This is resource intensive and should only be enabled if you are experiencing issues with the plugin.</p>
                             </div>
                         </div>
+                        <div>
+                            <button is="emby-button" type="button" class="raised block" id="refresh-movies"><span>Force full refresh for Movies</span></button>
+                            <button is="emby-button" type="button" class="raised block" id="refresh-tvshows"><span>Force full refresh for TV Shows</span></button>
+                            <button is="emby-button" type="button" class="raised block" id="refresh-collections"><span>Force full refresh for Collections</span></button>
+                            <button is="emby-button" type="button" class="raised block" id="refresh-everything"><span>Force full refresh for Everything</span></button>
+                        </div>
                         <hr />
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <h3>Synchronous Refresh Option</h3>
@@ -50,7 +56,6 @@
                             </div>
                         </div>
                         <br />
-                        <button is="emby-button" type="button" class="raised block" id="refresh-library"><span>Force full refresh ONCE</span></button>
                         <button is="emby-button" type="submit" class="raised button-submit block"><span>${Save}</span></button>
                     </form>
                 </div>
@@ -83,15 +88,66 @@
                     return false;
                 });
 
-                $("#refresh-library").on("click", function () {
+                $("#refresh-movies").on("click", function () {
                     var request = {
-                        url: ApiClient.getUrl("LanguageTags/RefreshLanguageTags"),
+                        url: ApiClient.getUrl("LanguageTags/RefreshLanguageTags?type=movies"),
                         type: "POST",
                     };
 
                     ApiClient.fetch(request)
                         .then(function () {
-                            Dashboard.alert("Full language tag refresh queued");
+                            Dashboard.alert("Full language tag refresh for movies queued");
+                        })
+                        .catch(function () {
+                            Dashboard.alert({
+                                message: "Unexpected error occurred!",
+                            });
+                        });
+                });
+
+                $("#refresh-tvshows").on("click", function () {
+                    var request = {
+                        url: ApiClient.getUrl("LanguageTags/RefreshLanguageTags?type=tvshows"),
+                        type: "POST",
+                    };
+
+                    ApiClient.fetch(request)
+                        .then(function () {
+                            Dashboard.alert("Full language tag refresh for TV shows queued");
+                        })
+                        .catch(function () {
+                            Dashboard.alert({
+                                message: "Unexpected error occurred!",
+                            });
+                        });
+                });
+
+                $("#refresh-collections").on("click", function () {
+                    var request = {
+                        url: ApiClient.getUrl("LanguageTags/RefreshLanguageTags?type=collections"),
+                        type: "POST",
+                    };
+
+                    ApiClient.fetch(request)
+                        .then(function () {
+                            Dashboard.alert("Full language tag refresh for collections queued");
+                        })
+                        .catch(function () {
+                            Dashboard.alert({
+                                message: "Unexpected error occurred!",
+                            });
+                        });
+                });
+
+                $("#refresh-everything").on("click", function () {
+                    var request = {
+                        url: ApiClient.getUrl("LanguageTags/RefreshLanguageTags?type=everything"),
+                        type: "POST",
+                    };
+
+                    ApiClient.fetch(request)
+                        .then(function () {
+                            Dashboard.alert("Full language tag refresh for everything queued");
                         })
                         .catch(function () {
                             Dashboard.alert({

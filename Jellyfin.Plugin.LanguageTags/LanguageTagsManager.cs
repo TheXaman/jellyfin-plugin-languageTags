@@ -48,24 +48,47 @@ public class LanguageTagsManager : IHostedService, IDisposable
     /// Scans the library.
     /// </summary>
     /// <param name="fullScan">if set to <c>true</c> [full scan].</param>
+    /// <param name="type">The type of refresh to perform. Default is "everything".</param>
     /// <returns>A <see cref="Task"/> representing the library scan progress.</returns>
-    public async Task ScanLibrary(bool fullScan = false)
+    public async Task ScanLibrary(bool fullScan = false, string type = "everything")
     {
         // Get configuration value for AlwaysForceFullRefresh
         var alwaysForceFullRefresh = Plugin.Instance?.Configuration?.AlwaysForceFullRefresh ?? false;
         fullScan = fullScan || alwaysForceFullRefresh;
+        if (fullScan)
+        {
+            _logger.LogInformation("Full scan enabled");
+        }
 
         // Get configuration value for SynchronousRefresh
         var synchronously = Plugin.Instance?.Configuration?.SynchronousRefresh ?? false;
+        if (synchronously)
+        {
+            _logger.LogInformation("Synchronous refresh enabled");
+        }
 
-        // Process movies
-        await ProcessLibraryMovies(fullScan, synchronously).ConfigureAwait(false);
+        switch (type.ToLowerInvariant())
+        {
+            case "movies":
+                await ProcessLibraryMovies(fullScan, synchronously).ConfigureAwait(false);
+                break;
+            case "series":
+                await ProcessLibrarySeries(fullScan, synchronously).ConfigureAwait(false);
+                break;
+            case "collections":
+                await ProcessLibraryCollections(fullScan, synchronously).ConfigureAwait(false);
+                break;
+            default:
+                // Process movies
+                await ProcessLibraryMovies(fullScan, synchronously).ConfigureAwait(false);
 
-        // Process series
-        await ProcessLibrarySeries(fullScan, synchronously).ConfigureAwait(false);
+                // Process series
+                await ProcessLibrarySeries(fullScan, synchronously).ConfigureAwait(false);
 
-        // Process box sets / collections
-        await ProcessLibraryCollections(fullScan, synchronously).ConfigureAwait(false);
+                // Process box sets / collections
+                await ProcessLibraryCollections(fullScan, synchronously).ConfigureAwait(false);
+                break;
+        }
     }
 
     /// <summary>

@@ -42,15 +42,16 @@ public class LanguageTagsController : ControllerBase, IDisposable
     /// <summary>
     /// Starts a manual FULL refresh of language tags.
     /// </summary>
+    /// <param name="type">The type of refresh to perform. Default is "everything".</param>
     /// <response code="204">Library scan and language tagging started successfully. </response>
     /// <returns>A <see cref="NoContentResult"/> indicating success.</returns>
     [HttpPost("RefreshLanguageTags")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<ActionResult> RefreshMetadataRequest()
+    public async Task<ActionResult> RefreshMetadataRequest([FromQuery] string type = "everything")
     {
-        _logger.LogInformation("Starting a manual refresh of language tags");
-        await _languageTagsManager.ScanLibrary(true).ConfigureAwait(false);
-        _logger.LogInformation("Completed refresh of language tags");
+        _logger.LogInformation("Starting a manual refresh of language tags for {Type}", type);
+        await _languageTagsManager.ScanLibrary(true, type).ConfigureAwait(false);
+        _logger.LogInformation("Completed refresh of language tags for {Type}", type);
         return NoContent();
     }
 
