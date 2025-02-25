@@ -69,8 +69,9 @@ jobs:
         run: |
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v$VERSION/language-tags_$VERSION.zip"
+          formatted_changelog=$(echo "$FORMATTED_CHANGELOG" | jq -r '.[]' | sed 's/^/- /')
           jq --arg strippedversion "$VERSION" \
-            --argjson changelog "$FORMATTED_CHANGELOG" \
+            --arg changelog "$formatted_changelog" \
             --arg checksum "$CHECKSUM" \
             --arg timestamp "$timestamp" \
             --arg sourceUrl "$sourceUrl" \
