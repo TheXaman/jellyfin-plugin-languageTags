@@ -11,6 +11,12 @@ language_ger
 ```
 This setting will only display movies, TV shows, and collections that contain German audio tracks.
 
+## Installation
+Add the following link to your jellyfin instance under Plugins -> Catalog -> Add Repository:
+```
+https://github.com/TheXaman/jellyfin-plugin-languageTags/blob/main/manifest.json
+```
+
 ## Build Process
 
 1. Clone or download this repository.
