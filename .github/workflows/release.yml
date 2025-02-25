@@ -2,9 +2,9 @@ name: Release
 
 on:
   push:
-    tags:
-      - "*"  # Runs when any tag is pushed (e.g., v1.0.0)
-  workflow_dispatch:  # Allows manual trigger from GitHub Actions UI
+    paths:
+      - VERSION
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -17,13 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Ensures full history for changelog generation
+          fetch-depth: 0 # Ensures full history for changelog generation
 
-      - name: Extract Version from Tag
-        id: version
-        run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          echo "VERSION=${TAG#v}" >> $GITHUB_ENV
+      - name: Get version from VERSION file
+        id: get_version
+        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
       - name: Generate Changelog
         uses: Bullrich/generate-release-changelog@master
@@ -31,15 +29,19 @@ jobs:
         env:
           REPO: ${{ github.repository }}
 
+      - name: Format Changelog to JSON
+        id: format_changelog
+        run: |
+          formatted_changelog=$(echo "${{ steps.changelog.outputs.changelog }}" | sed -E 's/ - [a-f0-9]{7} //' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "FORMATTED_CHANGELOG=$formatted_changelog" >> $GITHUB_ENV
+
       - name: Update `build.yaml`
         run: |
-          yq eval '
+          yq -P eval '
             .version = strenv(VERSION) |
             .targetAbi = "10.10.0.0" |
-            .changelog = strenv(CHANGELOG)
+            .changelog = (strenv(FORMATTED_CHANGELOG) | fromjson)
           ' build.yaml > build.tmp.yaml && mv build.tmp.yaml build.yaml
-        env:
-          CHANGELOG: ${{ steps.changelog.outputs.changelog }}
 
       - name: Print build.yaml
         run: |
@@ -60,40 +62,46 @@ jobs:
       - name: Generate Release Checksums
         run: |
           hash="$(md5sum ${{ steps.jprm.outputs.artifact }} | cut -d ' ' -f 1)"
-          echo "$hash $(basename ${{ steps.jprm.outputs.artifact }})" >> checksums.txt
+          echo "$hash $(basename ${{ steps.jprm.outputs.artifact }})" >> checksums.md5
           echo "CHECKSUM=$hash" >> $GITHUB_ENV
 
       - name: Update `manifest.json`
         run: |
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v$VERSION/langauge-tags_$VERSION.zip",
-          formattedChangelog=$(echo "${{ steps.changelog.outputs.changelog }}" | sed 's/$/\\n/; s/\n/\\n/g')
+          sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v$VERSION/language-tags_$VERSION.zip"
           jq --arg strippedversion "$VERSION" \
-              --arg changelog "$formattedChangelog" \
-              --arg checksum "$CHECKSUM" \
-              --arg timestamp "$timestamp" \
-              --arg sourceUrl "$sourceUrl" \
-              '.[0].versions += [{
-                version: $strippedversion,
-                changelog: $changelog,
-                targetAbi: "10.10.0.0",
-                sourceUrl: $sourceUrl,
-                checksum: $checksum,
-                timestamp: $timestamp
-              }]' manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
+            --argjson changelog "$FORMATTED_CHANGELOG" \
+            --arg checksum "$CHECKSUM" \
+            --arg timestamp "$timestamp" \
+            --arg sourceUrl "$sourceUrl" \
+            '.[0].versions |= [{
+              version: $strippedversion,
+              changelog: $changelog,
+              targetAbi: "10.10.0.0",
+              sourceUrl: $sourceUrl,
+              checksum: $checksum,
+              timestamp: $timestamp
+            }] + .' \
+            manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
 
       - name: Commit Updated Files
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add build.yaml manifest.json
-          git commit -m "Update build.yaml and manifest.json for version $VERSION"
+          git commit -m "Update build.yaml and manifest.json for release version $VERSION"
           git push origin HEAD:main
+
+      - name: Create Tag
+        run: |
+          git tag -a "v$VERSION" -m "Release version $VERSION"
+          git push origin "v$VERSION"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: "v${{ steps.get_version.outputs.VERSION }}"
           body: ${{ steps.changelog.outputs.changelog }}
           files: |
-            checksums.txt
+            checksums.md5
             ${{ steps.jprm.outputs.artifact }}
