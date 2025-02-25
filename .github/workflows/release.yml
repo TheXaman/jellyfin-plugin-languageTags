@@ -6,6 +6,9 @@ on:
       - "*"  # Runs when any tag is pushed (e.g., v1.0.0)
   workflow_dispatch:  # Allows manual trigger from GitHub Actions UI
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -15,6 +18,33 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Ensures full history for changelog generation
+
+      - name: Extract Version from Tag
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "VERSION=${TAG#v}" >> $GITHUB_ENV
+
+      - name: Generate Changelog
+        uses: Bullrich/generate-release-changelog@master
+        id: changelog
+        env:
+          REPO: ${{ github.repository }}
+
+      - name: Update `build.yaml`
+        run: |
+          yq eval '
+            .version = strenv(VERSION) |
+            .targetAbi = "10.10.0.0" |
+            .changelog = strenv(CHANGELOG)
+          ' build.yaml > build.tmp.yaml && mv build.tmp.yaml build.yaml
+        env:
+          CHANGELOG: ${{ steps.changelog.outputs.changelog }}
+
+      - name: Print build.yaml
+        run: |
+          echo "Updated build.yaml:"
+          cat build.yaml
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
@@ -33,40 +63,24 @@ jobs:
           echo "$hash $(basename ${{ steps.jprm.outputs.artifact }})" >> checksums.txt
           echo "CHECKSUM=$hash" >> $GITHUB_ENV
 
-      - name: Extract Version from Tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
-      - name: Generate Changelog
-        uses: Bullrich/generate-release-changelog@master
-        id: changelog
-        env:
-          REPO: ${{ github.repository }}
-
-      - name: Update `build.yaml`
-        run: |
-          yq -i '
-            .version = env.VERSION |
-            .targetAbi = "10.9.0.0"
-            .changelog = $changelog
-          ' build.yaml
-
       - name: Update `manifest.json`
         run: |
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/$VERSION/langauge-tags_$VERSION.zip",
-          jq --arg version "$VERSION" \
-              --arg changelog "Updated to version $VERSION" \
+          sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v$VERSION/langauge-tags_$VERSION.zip",
+          formattedChangelog=$(echo "${{ steps.changelog.outputs.changelog }}" | sed 's/$/\\n/; s/\n/\\n/g')
+          jq --arg strippedversion "$VERSION" \
+              --arg changelog "$formattedChangelog" \
               --arg checksum "$CHECKSUM" \
               --arg timestamp "$timestamp" \
-              '.[0].versions[0] |= {
-                version: $version,
+              --arg sourceUrl "$sourceUrl" \
+              '.[0].versions += [{
+                version: $strippedversion,
                 changelog: $changelog,
-                targetAbi: "10.9.0.0",
+                targetAbi: "10.10.0.0",
                 sourceUrl: $sourceUrl,
                 checksum: $checksum,
                 timestamp: $timestamp
-              }' manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
+              }]' manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
 
       - name: Commit Updated Files
         run: |
@@ -74,7 +88,7 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git add build.yaml manifest.json
           git commit -m "Update build.yaml and manifest.json for version $VERSION"
-          git push
+          git push origin HEAD:main
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
