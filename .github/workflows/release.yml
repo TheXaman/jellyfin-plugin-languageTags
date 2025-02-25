@@ -43,23 +43,23 @@ jobs:
         env:
           REPO: ${{ github.repository }}
 
+      - name: Set Changelog Environment Variable
+        run: echo "CHANGELOG=${{ steps.changelog.outputs.changelog }}" >> $GITHUB_ENV
+
       - name: Update `build.yaml`
         run: |
-          yq -i '
+          yq eval '
             .version = env.VERSION |
             .targetAbi = "10.9.0.0" |
             .changelog = env.CHANGELOG
           ' build.yaml > build.tmp.yaml && mv build.tmp.yaml build.yaml
-        env:
-          VERSION: ${{ env.VERSION }}
-          CHANGELOG: ${{ steps.changelog.outputs.changelog }}
 
       - name: Update `manifest.json`
         run: |
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/$VERSION/langauge-tags_$VERSION.zip",
           jq --arg version "$VERSION" \
-              --arg changelog "Updated to version $VERSION" \
+              --arg changelog "$CHANGELOG" \
               --arg checksum "$CHECKSUM" \
               --arg timestamp "$timestamp" \
               '.[0].versions[0] |= {
