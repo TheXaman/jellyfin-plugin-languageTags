@@ -1,12 +1,20 @@
 [
-    {
-        "guid": "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb",
-        "name": "LanguageTags",
-        "overview": "This plugin automatically adds language tags to the media.",
-        "description": "This plugin automatically scans the libraries and adds language tags to the media items. The languages are extracted from the audio tracks. Media types covered are movies, tv shows / series and collections.",
-        "owner": "TheXaman",
-        "category": "General",
-        "versions": [
-        ]
-    }
+  {
+    "guid": "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb",
+    "name": "LanguageTags",
+    "overview": "This plugin automatically adds language tags to the media.",
+    "description": "This plugin automatically scans the libraries and adds language tags to the media items. The languages are extracted from the audio tracks. Media types covered are movies, tv shows / series and collections.",
+    "owner": "TheXaman",
+    "category": "General",
+    "versions": [
+      {
+        "version": "refs/heads/testing",
+        "changelog": " - d53e004 added write permission to workflow\\n\n - 72140c0 close array and format changelog\\n\n - f918916 fixes missing sourceUrl\\n\n - 08f9211 workflow changes\\n\n - 6b92f4e - another workflow change\\n\n - d9bc96c workflow change\\n\n - b92e1a1 minor workflow adjustment\\n\n - 1edec4d updated workflow\\n",
+        "targetAbi": "10.9.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/refs/heads/testing/langauge-tags_refs/heads/testing.zip,",
+        "checksum": "00c060a2b506d5b51df15c69714c571c",
+        "timestamp": "2025-02-25T11:46:50Z"
+      }
+    ]
+  }
 ]

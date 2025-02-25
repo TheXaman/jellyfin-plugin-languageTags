@@ -1,18 +1,17 @@
 ---
 name: "Language Tags"
 guid: "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb"
-version: "0.0.0.0"
+version: ""
 targetAbi: "10.9.0.0"
 framework: "net8.0"
 overview: >
   This plugin automatically adds language tags to the media.
+
 description: >
-  This plugin automatically scans the libraries and adds language tags to the media items.
-  The languages are extracted from the audio tracks. Media types covered are movies,
-  tv shows / series and collections.
+  This plugin automatically scans the libraries and adds language tags to the media items. The languages are extracted from the audio tracks. Media types covered are movies, tv shows / series and collections.
+
 category: "General"
 owner: "TheXaman"
 artifacts:
   - "Jellyfin.Plugin.LanguageTags.dll"
-changelog: >
-  - Changelog
+changelog: ""
