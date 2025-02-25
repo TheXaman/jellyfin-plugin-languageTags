@@ -106,7 +106,7 @@ jobs:
         env:
           VERSION: ${{ env.VERSION }}
         with:
-          tag_name: "v${VERSION}"
+          tag_name: "v${{ env.VERSION }}"
           body: ${{ steps.changelog.outputs.changelog }}
           files: |
             checksums.md5
