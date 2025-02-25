@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"  # Runs when any tag is pushed (e.g., v1.0.0)
+  workflow_dispatch:  # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensures full history for changelog generation
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build Jellyfin Plugin
+        uses: oddstr13/jellyfin-plugin-repository-manager@v0.5.0
+        id: jprm
+        with:
+          dotnet-target: net8.0
+
+      - name: Generate Release Checksums
+        run: |
+          hash="$(md5sum ${{ steps.jprm.outputs.artifact }} | cut -d ' ' -f 1)"
+          echo "$hash $(basename ${{ steps.jprm.outputs.artifact }})" >> checksums.txt
+          echo "CHECKSUM=$hash" >> $GITHUB_ENV
+
+      - name: Extract Version from Tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Generate Changelog
+        uses: Bullrich/generate-release-changelog@master
+        id: changelog
+        env:
+          REPO: ${{ github.repository }}
+
+      - name: Update `build.yaml`
+        run: |
+          yq -i '
+            .version = env.VERSION |
+            .targetAbi = "10.9.0.0"
+            .changelog = $changelog
+          ' build.yaml
+
+      - name: Update `manifest.json`
+        run: |
+          timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/$VERSION/langauge-tags_$VERSION.zip",
+          jq --arg version "$VERSION" \
+              --arg changelog "Updated to version $VERSION" \
+              --arg checksum "$CHECKSUM" \
+              --arg timestamp "$timestamp" \
+              '.[0].versions[0] |= {
+                version: $version,
+                changelog: $changelog,
+                targetAbi: "10.9.0.0",
+                sourceUrl: $sourceUrl,
+                checksum: $checksum,
+                timestamp: $timestamp
+              }' manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
+
+      - name: Commit Updated Files
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add build.yaml manifest.json
+          git commit -m "Update build.yaml and manifest.json for version $VERSION"
+          git push
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: ${{ steps.changelog.outputs.changelog }}
+          files: |
+            checksums.txt
+            ${{ steps.jprm.outputs.artifact }}

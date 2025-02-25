@@ -1,0 +1,12 @@
+[
+    {
+        "guid": "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb",
+        "name": "LanguageTags",
+        "overview": "This plugin automatically adds language tags to the media.",
+        "description": "This plugin automatically scans the libraries and adds language tags to the media items. The languages are extracted from the audio tracks. Media types covered are movies, tv shows / series and collections.",
+        "owner": "TheXaman",
+        "category": "General",
+        "versions": [
+        ]
+    }
+]
