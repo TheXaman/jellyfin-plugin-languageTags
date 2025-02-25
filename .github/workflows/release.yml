@@ -51,8 +51,8 @@ jobs:
             .changelog = env.CHANGELOG
           ' build.yaml > build.tmp.yaml && mv build.tmp.yaml build.yaml
         env:
+          VERSION: ${{ env.VERSION }}
           CHANGELOG: ${{ steps.changelog.outputs.changelog }}
-          VERSION:
 
       - name: Update `manifest.json`
         run: |
