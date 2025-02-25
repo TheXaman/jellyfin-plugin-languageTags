@@ -57,8 +57,9 @@ jobs:
         run: |
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/$VERSION/langauge-tags_$VERSION.zip",
+          formattedChangelog=$(echo "${{ steps.changelog.outputs.changelog }}" | sed 's/$/\\n/; s/\n/\\n/g')
           jq --arg version "$VERSION" \
-              --arg changelog "${{ steps.changelog.outputs.changelog }}" \
+              --arg changelog "$formattedChangelog" \
               --arg checksum "$CHECKSUM" \
               --arg timestamp "$timestamp" \
               --arg sourceUrl "$sourceUrl" \
@@ -69,7 +70,7 @@ jobs:
                 sourceUrl: $sourceUrl,
                 checksum: $checksum,
                 timestamp: $timestamp
-              }' manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
+              }]' manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
 
       - name: Commit Updated Files
         run: |
