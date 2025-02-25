@@ -95,8 +95,8 @@ jobs:
 
       - name: Create Tag
         run: |
-          git tag -a "v$VERSION" -m "Release version $VERSION"
-          git push origin "v$VERSION"
+          git tag -a "v${{ steps.get_version.outputs.VERSION }}" -m "Release version v${{ steps.get_version.outputs.VERSION }}"
+          git push origin "v${{ steps.get_version.outputs.VERSION }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
