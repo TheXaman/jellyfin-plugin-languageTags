@@ -35,18 +35,12 @@ jobs:
           formatted_changelog=$(echo "${{ steps.changelog.outputs.changelog }}" | sed -E 's/ - [a-f0-9]{7} //' | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "FORMATTED_CHANGELOG=$formatted_changelog" >> $GITHUB_ENV
 
-      - name: Format Changelog to Single String
-        id: format_changelog_string
-        run: |
-          formatted_changelog=$(echo "${{ steps.changelog.outputs.changelog }}" | jq -R -s -c 'split("\n") | map(select(length > 0))' | jq -r '.[]' | paste -sd ' ' -)
-          echo "FORMATTED_CHANGELOG_STRING=$formatted_changelog" >> $GITHUB_ENV
-
       - name: Update `build.yaml`
         run: |
           yq eval '
             .version = strenv(VERSION) |
             .targetAbi = "10.10.0.0" |
-            .changelog = strenv(FORMATTED_CHANGELOG_STRING)
+            .changelog = strenv(FORMATTED_CHANGELOG)
           ' build.yaml > build.tmp.yaml && mv build.tmp.yaml build.yaml
 
       - name: Print build.yaml
