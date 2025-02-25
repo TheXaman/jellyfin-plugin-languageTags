@@ -6,6 +6,9 @@ on:
       - "*"  # Runs when any tag is pushed (e.g., v1.0.0)
   workflow_dispatch:  # Allows manual trigger from GitHub Actions UI
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
