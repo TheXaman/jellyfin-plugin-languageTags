@@ -8,6 +8,20 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.1.2.0",
+        "changelog": [
+          "Bump version",
+          "Refactored release workflow to use VERSION file for versioning and better changelog formating",
+          "- fixed manifest.json order - added VERSION file",
+          "Update build.yaml and manifest.json for version 0.1.1.0",
+          "updated workflow"
+        ],
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.1.2.0/language-tags_0.1.2.0.zip",
+        "checksum": "7c95c3d62626189452893ffc4a0c0424",
+        "timestamp": "2025-02-25T18:20:21Z"
+      },
+      {
         "version": "0.1.1.0",
         "changelog": " - 334671f updated workflow\\n",
         "targetAbi": "10.10.0.0",
