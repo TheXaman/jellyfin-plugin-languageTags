@@ -61,7 +61,8 @@ jobs:
               --arg changelog "${{ steps.changelog.outputs.changelog }}" \
               --arg checksum "$CHECKSUM" \
               --arg timestamp "$timestamp" \
-              '.[0].versions[0] |= {
+              --arg sourceUrl "$sourceUrl" \
+              '.[0].versions += [{
                 version: $version,
                 changelog: $changelog,
                 targetAbi: "10.9.0.0",
