@@ -1,7 +1,7 @@
 ---
 name: "Language Tags"
 guid: "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb"
-version: "0.1.0.7"
+version: "0.1.1.0"
 targetAbi: "10.10.0.0"
 framework: "net8.0"
 overview: This plugin automatically adds language tags to the media.
@@ -13,4 +13,4 @@ owner: "TheXaman"
 artifacts:
   - "Jellyfin.Plugin.LanguageTags.dll"
 changelog: >2-
-   - 63027de fixed incorrect strenv usage
+   - 334671f updated workflow
