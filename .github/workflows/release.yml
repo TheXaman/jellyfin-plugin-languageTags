@@ -103,8 +103,10 @@ jobs:
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
+        env:
+          VERSION: ${{ env.VERSION }}
         with:
-          tag_name: "v${{ steps.get_version.outputs.VERSION }}"
+          tag_name: "v${VERSION}"
           body: ${{ steps.changelog.outputs.changelog }}
           files: |
             checksums.md5
