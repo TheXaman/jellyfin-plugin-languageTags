@@ -47,9 +47,12 @@ jobs:
         run: |
           yq -i '
             .version = env.VERSION |
-            .targetAbi = "10.9.0.0"
-            .changelog = $changelog
-          ' build.yaml
+            .targetAbi = "10.9.0.0" |
+            .changelog = env.CHANGELOG
+          ' build.yaml > build.tmp.yaml && mv build.tmp.yaml build.yaml
+        env:
+          CHANGELOG: ${{ steps.changelog.outputs.changelog }}
+          VERSION:
 
       - name: Update `manifest.json`
         run: |
