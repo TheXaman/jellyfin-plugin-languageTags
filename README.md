@@ -3,6 +3,17 @@
 ## About
 Jellyfin Language Tags Plugin is a .NET-based plugin that adds language tags to media files based on their audio tracks. It extracts language information from the audio tracks using FFmpeg. Language tags help users filter media in multilingual households, showing only content in their preferred language.
 
+## Features
+
+- Automatically scan the library with a scheduled job (default 24 hrs)
+- Extracts languages from a files audio tracks via ffmpeg if no language tags are present
+- Add the tags to the media for filtering
+- Works on movies, TV shows / series and collections
+- Whitelist option for languages to avoid spam if files contain many different languages
+- Runs asynchronously for speed and takes about 2 mins for a full refresh with ~ 500 movies
+- Synchronous mode for low-end devices like a Raspberry Pi
+- Force refresh option and buttons if media files are replaced or in case of problems
+
 ## Example Usage
 Install the plugin and scan your library. Then, navigate to the parental controls of individual users and restrict content based on desired language tags. For example:
 ```
