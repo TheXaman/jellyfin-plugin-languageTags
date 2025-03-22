@@ -541,18 +541,24 @@ public class LanguageTagsManager : IHostedService, IDisposable
         // Get the whitelist of language tags
         var whitelist = Plugin.Instance?.Configuration?.WhitelistLanguageTags ?? string.Empty;
         var whitelistArray = whitelist.Split(Separator, StringSplitOptions.RemoveEmptyEntries).Select(lang => lang.Trim()).ToList();
-        // Add und(efined) to the whitelist
-        whitelistArray.Add("und");
-        // Remmove duplicates
-        whitelistArray = whitelistArray.Distinct().ToList();
-        // Remove invalid tags (not ISO 639-2/B language codes)
-        whitelistArray = whitelistArray.Where(lang => lang.Length == 3).ToList();
+        var filteredOutLanguages = new List<string>();
 
-        // Capture the filtered out languages
-        var filteredOutLanguages = languages.Where(lang => !whitelistArray.Contains(lang)).ToList();
+        // Check if whitelistArray has entries
+        if (whitelistArray.Count > 0)
+        {
+            // Add und(efined) to the whitelist
+            whitelistArray.Add("und");
+            // Remmove duplicates
+            whitelistArray = whitelistArray.Distinct().ToList();
+            // Remove invalid tags (not ISO 639-2/B language codes)
+            whitelistArray = whitelistArray.Where(lang => lang.Length == 3).ToList();
 
-        // Filter out tags that are not in the whitelist
-        languages = languages.Where(lang => whitelistArray.Contains(lang)).ToList();
+            // Capture the filtered out languages
+            filteredOutLanguages = languages.Where(lang => !whitelistArray.Contains(lang)).ToList();
+
+            // Filter out tags that are not in the whitelist
+            languages = languages.Where(lang => whitelistArray.Contains(lang)).ToList();
+        }
 
         foreach (var language in languages)
         {
