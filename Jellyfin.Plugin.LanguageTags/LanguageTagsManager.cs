@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -14,6 +15,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.MediaEncoding;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -28,6 +30,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
     private readonly ICollectionManager _collectionManager;
     private readonly HashSet<string> _queuedTmdbCollectionIds;
     private readonly ILogger<LanguageTagsManager> _logger;
+    private readonly IMediaEncoder _mediaEncoder;
     private static readonly char[] Separator = new[] { ',' };
 
     /// <summary>
@@ -36,11 +39,13 @@ public class LanguageTagsManager : IHostedService, IDisposable
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{LanguageTagsManager}"/> interface.</param>
-    public LanguageTagsManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<LanguageTagsManager> logger)
+    /// <param name="mediaEncoder">Instance of the <see cref="IMediaEncoder"/> interface.</param>
+    public LanguageTagsManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<LanguageTagsManager> logger, IMediaEncoder mediaEncoder)
     {
         _libraryManager = libraryManager;
         _collectionManager = collectionManager;
         _logger = logger;
+        _mediaEncoder = mediaEncoder;
         _queuedTmdbCollectionIds = new HashSet<string>();
     }
 
@@ -67,6 +72,10 @@ public class LanguageTagsManager : IHostedService, IDisposable
             _logger.LogInformation("Synchronous refresh enabled");
         }
 
+        // Print the ffmpeg / encoder path
+        GetFFmpegPath(true);
+
+        // Process the libraries
         switch (type.ToLowerInvariant())
         {
             case "movies":
@@ -498,13 +507,52 @@ public class LanguageTagsManager : IHostedService, IDisposable
         return !string.IsNullOrEmpty(filePath) && File.Exists(filePath);
     }
 
+    private string GetFFmpegPath(bool printPath = false)
+    {
+        var encoderPath = _mediaEncoder.EncoderPath;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            if (printPath)
+            {
+                _logger.LogInformation("Windows detected");
+                _logger.LogInformation("Encoder path: {EncoderPath}", encoderPath);
+            }
+
+            return encoderPath;
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            if (printPath)
+            {
+                _logger.LogInformation("Linux detected");
+                _logger.LogInformation("Encoder path: {EncoderPath}", encoderPath);
+            }
+
+            return encoderPath;
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            if (printPath)
+            {
+                _logger.LogInformation("macOS detected");
+                _logger.LogInformation("Encoder path: {EncoderPath}", encoderPath);
+            }
+
+            return encoderPath;
+        }
+        else
+        {
+            throw new NotSupportedException("Unsupported operating system");
+        }
+    }
+
     private async Task<string> RunFFmpeg(string filePath)
     {
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = "/usr/lib/jellyfin-ffmpeg/ffmpeg",
+                FileName = GetFFmpegPath(),
                 Arguments = $"-i \"{filePath}\" -hide_banner",
                 RedirectStandardError = true,
                 UseShellExecute = false,

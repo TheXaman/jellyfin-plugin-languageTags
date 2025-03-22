@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.MediaEncoding;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -24,14 +25,16 @@ public class RefreshLibraryTask : IScheduledTask, IDisposable
     /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{RefreshLibraryTask}"/> interface.</param>
     /// <param name="boxsetLogger">Instance of the <see cref="ILogger{LanguageTagsManager}"/> interface.</param>
+    /// <param name="mediaEncoder">Instance of the <see cref="IMediaEncoder"/> interface.</param>
     public RefreshLibraryTask(
         ILibraryManager libraryManager,
         ICollectionManager collectionManager,
         ILogger<RefreshLibraryTask> logger,
-        ILogger<LanguageTagsManager> boxsetLogger)
+        ILogger<LanguageTagsManager> boxsetLogger,
+        IMediaEncoder mediaEncoder)
     {
         _logger = logger;
-        _languageTagsManager = new LanguageTagsManager(libraryManager, collectionManager, boxsetLogger);
+        _languageTagsManager = new LanguageTagsManager(libraryManager, collectionManager, boxsetLogger, mediaEncoder);
     }
 
     /// <inheritdoc/>
