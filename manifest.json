@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.1.5.0",
+        "changelog": "- bump version to 0.1.5.0\n- updated workflow for changelog generation\n- Changed ffmpeg handling, now supports Linux, Windows, MacOS and custom installs\n- Update build.yaml and manifest.json for release version 0.1.4.2\n- bump version to 0.1.4.2\n- Enhance configuration page and language tag filtering logic\n- Update README.md to include raw manifest link",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.1.5.0/language-tags_0.1.5.0.zip",
+        "checksum": "56b13a27833a11063da421f66e83576f",
+        "timestamp": "2025-03-22T19:33:10Z"
+      },
+      {
         "version": "0.1.4.2",
         "changelog": "- bump version to 0.1.4.2\n- Enhance configuration page and language tag filtering logic\n- Update README.md to include raw manifest link\n- Update build.yaml and manifest.json for release version 0.1.4.1\n- bump version to 0.1.4.1\n- removed all but last manifest.json entries\n- Update README.md\n- manifest.json cleanup: removed deleted releases\n- Smaller readme image\n- Updated Readme with example image\n- Removeed Directory.Build.props file",
         "targetAbi": "10.10.0.0",

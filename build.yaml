@@ -1,7 +1,7 @@
 ---
 name: "Language Tags"
 guid: "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb"
-version: "0.1.4.2"
+version: "0.1.5.0"
 targetAbi: "10.10.0.0"
 framework: "net8.0"
 overview: "This plugin automatically adds language tags to the media."
@@ -11,4 +11,4 @@ category: "General"
 owner: "TheXaman"
 artifacts:
   - "Jellyfin.Plugin.LanguageTags.dll"
-changelog: "[\"bump version to 0.1.4.2\",\"Enhance configuration page and language tag filtering logic\",\"Update README.md to include raw manifest link\",\"Update build.yaml and manifest.json for release version 0.1.4.1\",\"bump version to 0.1.4.1\",\"removed all but last manifest.json entries\",\"Update README.md\",\"manifest.json cleanup: removed deleted releases\",\"Smaller readme image\",\"Updated Readme with example image\",\"Removeed Directory.Build.props file\"]"
+changelog: "[\"bump version to 0.1.5.0\",\"updated workflow for changelog generation\",\"Changed ffmpeg handling, now supports Linux, Windows, MacOS and custom installs\",\"Update build.yaml and manifest.json for release version 0.1.4.2\",\"bump version to 0.1.4.2\",\"Enhance configuration page and language tag filtering logic\",\"Update README.md to include raw manifest link\"]"
