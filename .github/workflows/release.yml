@@ -28,6 +28,8 @@ jobs:
         id: changelog
         env:
           REPO: ${{ github.repository }}
+          from: "latest"
+          to: "HEAD"
 
       - name: Format Changelog to JSON
         id: format_changelog
