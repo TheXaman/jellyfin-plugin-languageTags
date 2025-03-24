@@ -27,7 +27,7 @@ This setting will only display movies, TV shows, and collections that contain Ge
   <img src="Images/example_on_mobile_small.png" alt="Example" width="400">
 </p>
 
-## Installation 🛠️
+## 🛠️ Installation
 Add the following link to your jellyfin instance under Plugins -> Catalog -> Add Repository:
 ```
 https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/main/manifest.json
