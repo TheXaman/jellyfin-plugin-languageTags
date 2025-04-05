@@ -13,7 +13,8 @@
                             <a is="emby-linkbutton" class="raised button-alt headerHelpButton emby-button" target="_blank" href="https://github.com/TheXaman/jellyfin-plugin-languageTags">Help</a>
                         </div>
                         <div class="verticalSection">
-                            <p>This plugin scans your movies and tv shows for the available audio tracks and adds language tags to the items.</p>
+                            <p>This plugin scans your movies, tv shows and collections for the available audio tracks and adds language tags to the items.</p>
+                            <p>Additionally the plugin can add subtitle language tags, if enabled.</p>
                         </div>
                         <hr />
                         <div class="verticalSection">
@@ -24,6 +25,17 @@
                             <div class="fieldDescription">
                                 <p>Specify the language tags you want to whitelist. Only these tags will be added to your media by the plugin. Leave empty to allow all language tags.</p>
                                 <p>Language tags are 3-letter codes like "eng" for English, etc. Some languages have two versions based on their native and English name, e.g "ger" AND "deu" for German, "fra" AND "fre" for French,.</p>
+                            </div>
+                        </div>
+                        <hr />
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <h3>Subtitle Language Tags</h3>
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="subtitle-tags" name="subtitle-tags" />
+                                <span>Extract subtitle language tags</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                <p>When enabled, the plugin will add subtitle language tags e.g. "subtitle_language_fra" based on the available subtitles.</p>
                             </div>
                         </div>
                         <hr />
@@ -41,6 +53,7 @@
                             <button is="emby-button" type="button" class="raised block" id="refresh-movies"><span>Force full refresh for Movies</span></button>
                             <button is="emby-button" type="button" class="raised block" id="refresh-tvshows"><span>Force full refresh for TV Shows</span></button>
                             <button is="emby-button" type="button" class="raised block" id="refresh-collections"><span>Force full refresh for Collections</span></button>
+                            <button is="emby-button" type="button" class="raised block" id="refresh-external-subtitles"><span>Force full refresh for EXTERNAL Subtitles</span></button>
                             <button is="emby-button" type="button" class="raised block" id="refresh-everything"><span>Force full refresh for Everything</span></button>
                         </div>
                         <hr />
@@ -71,6 +84,7 @@
                         document.getElementById("always-force-full-refresh").checked = config.AlwaysForceFullRefresh;
                         document.getElementById("whitelist-language-tags").value = config.WhitelistLanguageTags || "";
                         document.getElementById("synchronous-refresh").checked = config.SynchronousRefresh;
+                        document.getElementById("subtitle-tags").checked = config.AddSubtitleTags;
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -82,6 +96,7 @@
                         config.AlwaysForceFullRefresh = document.getElementById("always-force-full-refresh").checked;
                         config.WhitelistLanguageTags = document.getElementById("whitelist-language-tags").value;
                         config.SynchronousRefresh = document.getElementById("synchronous-refresh").checked;
+                        config.AddSubtitleTags = document.getElementById("subtitle-tags").checked;
 
                         ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                     });
@@ -132,6 +147,23 @@
                     ApiClient.fetch(request)
                         .then(function () {
                             Dashboard.alert("Full language tag refresh for collections queued");
+                        })
+                        .catch(function () {
+                            Dashboard.alert({
+                                message: "Unexpected error occurred!",
+                            });
+                        });
+                });
+
+                $("#refresh-external-subtitles").on("click", function () {
+                    var request = {
+                        url: ApiClient.getUrl("LanguageTags/RefreshLanguageTags?type=externalsubtitles"),
+                        type: "POST",
+                    };
+
+                    ApiClient.fetch(request)
+                        .then(function () {
+                            Dashboard.alert("Full external subtitle language tag refresh queued");
                         })
                         .catch(function () {
                             Dashboard.alert({

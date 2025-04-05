@@ -14,6 +14,7 @@ public class PluginConfiguration : BasePluginConfiguration
     {
         AlwaysForceFullRefresh = false;
         WhitelistLanguageTags = string.Empty;
+        AddSubtitleTags = false;
         SynchronousRefresh = false;
     }
 
@@ -26,6 +27,11 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets the whitelist of language tags.
     /// </summary>
     public string WhitelistLanguageTags { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to extract subtitle languages.
+    /// </summary>
+    public bool AddSubtitleTags { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether to refresh synchronously.
