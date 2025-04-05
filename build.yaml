@@ -9,6 +9,7 @@ description: |
   "This plugin automatically scans the libraries and adds language tags to the media items.\n The languages are extracted from the audio tracks. Media types covered are movies,\n tv shows / series and collections."
 category: "General"
 owner: "TheXaman"
+imageUrl: "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png"
 artifacts:
   - "Jellyfin.Plugin.LanguageTags.dll"
 changelog: "[\"Bump version to 0.1.6.0\",\"Added suppport for subtitle_language tags Handles subtitles included in files and external subtitles Based on #4\",\"Update README.md\",\"Update README.md\",\"Enhance README.md with emojis for improved readability and engagement\",\"Update build.yaml and manifest.json for release version 0.1.5.0\",\"bump version to 0.1.5.0\",\"updated workflow for changelog generation\",\"Changed ffmpeg handling, now supports Linux, Windows, MacOS and custom installs\"]"

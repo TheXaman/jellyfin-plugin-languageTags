@@ -1,4 +1,7 @@
 # 🍿 Jellyfin Language Tags Plugin 🌍
+<p align="center">
+  <img src="Images/logo.png" alt="Example" width="400">
+</p>
 
 ## 📖 About
 Jellyfin Language Tags Plugin is a .NET-based plugin that adds language tags to media files based on their audio tracks. It extracts language information from the audio tracks using FFmpeg. Language tags help users filter media in multilingual households, showing only content in their preferred language. It's also possible to add additional language tags based on the available subtitles including external ones.
