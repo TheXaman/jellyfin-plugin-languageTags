@@ -32,3 +32,5 @@ packages/
 # Ignore other unnecessary files
 *.DS_Store
 Thumbs.db
+
+publish/
