@@ -258,7 +258,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             if (episodes == null || episodes.Count == 0)
             {
                 _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
-                return;
+                continue;
             }
 
             // Get language tags from all episodes in the season
@@ -271,8 +271,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 {
                     if (!HasValidPath(video.Path))
                     {
-                        _logger.LogWarning("Invalid file path for {VideoName}", video.Name);
-                        return;
+                        _logger.LogWarning("Invalid file path for {VideoName} in Season {SeasonName} for {SeriesName}", video.Name, season.Name, series.Name);
+                        continue;
                     }
 
                     // Check if the video has subtitle language tags and subtitleTags is enabled
@@ -281,11 +281,13 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         if (!fullScan)
                         {
                             _logger.LogInformation("Subtitle tags exist for {VideoName}", video.Name);
-                            var episodeLanguagesTmp = GetSubtitleLanguageTags(video);
+                            var episodeLanguagesTmp = GetSubtitleLanguageTags(video).Select(lang => lang.Substring(18)).ToList(); // Strip "subtitle_language_" prefix
                             seasonSubtitleLanguages.AddRange(episodeLanguagesTmp);
                         }
-
-                        RemoveSubtitleLanguageTags(episode);
+                        else
+                        {
+                            RemoveSubtitleLanguageTags(episode);
+                        }
                     }
 
                     // Check if the video has audio language tags
@@ -294,12 +296,14 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         if (!fullScan)
                         {
                             _logger.LogInformation("Audio tags exist, skipping {VideoName}", video.Name);
-                            var episodeLanguagesTmp = GetAudioLanguageTags(video);
+                            var episodeLanguagesTmp = GetAudioLanguageTags(video).Select(lang => lang.Substring(9)).ToList(); // Strip "language_" prefix
                             seasonAudioLanguages.AddRange(episodeLanguagesTmp);
-                            return;
+                            continue;
                         }
-
-                        RemoveAudioLanguageTags(episode);
+                        else
+                        {
+                            RemoveAudioLanguageTags(episode);
+                        }
                     }
 
                     var (audioLanguages, subtitleLanguages) = await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
@@ -680,7 +684,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             if (episodes == null || episodes.Count == 0)
             {
                 _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
-                return;
+                continue;
             }
 
             // Get language tags from all episodes in the season
@@ -692,8 +696,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 {
                     if (!HasValidPath(video.Path))
                     {
-                        _logger.LogWarning("Invalid file path for {VideoName}", video.Name);
-                        return;
+                        _logger.LogWarning("Invalid file path for {VideoName} in Season {SeasonName} for {SeriesName}", video.Name, season.Name, series.Name);
+                        continue;
                     }
 
                     var subtitleLanguages = ExtractSubtitleLanguagesExternal(video);
