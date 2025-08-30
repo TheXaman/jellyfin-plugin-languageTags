@@ -1091,11 +1091,12 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
         foreach (Match match in audioRegex.Matches(ffmpegOutput))
         {
-            audioLanguages.Add(match.Groups[1].Value); // e.g., "eng", "ger"
+            var languageCode = match.Groups[1].Value;
+            if (LanguageData.IsValidLanguageCode(languageCode))
+            {
+                audioLanguages.Add(languageCode); // e.g., "eng", "ger"
+            }
         }
-
-        // Filter out tags that are not ISO 639-2/B language codes
-        audioLanguages = audioLanguages.Where(lang => lang.Length == 3).ToList();
 
         // Remove duplicates
         audioLanguages = audioLanguages.Distinct().ToList();
@@ -1112,7 +1113,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
         foreach (Match match in subtitleRegex.Matches(ffmpegOutput))
         {
-            subtitleLanguages.Add(match.Groups[1].Value); // e.g., "eng", "ger"
+            var languageCode = match.Groups[1].Value;
+            if (LanguageData.IsValidLanguageCode(languageCode))
+            {
+                subtitleLanguages.Add(languageCode); // e.g., "eng", "ger"
+            }
         }
 
         // Get the subtitle languages from external files
@@ -1142,18 +1147,21 @@ public class LanguageTagsManager : IHostedService, IDisposable
             foreach (var subtitleFile in subtitleFiles)
             {
                 // Extract the language code from the file name
-                var match = Regex.Match(subtitleFile, @"\.(\w{3})\.");
-                if (match.Success)
+                var subtitleRegexExternal = new Regex(@"\.(\w{2,3})\.");
+                foreach (Match match in subtitleRegexExternal.Matches(subtitleFile))
                 {
-                    subtitleLanguagesExternal.Add(match.Groups[1].Value); // e.g., "eng", "ger"
+                    var languageCode = match.Groups[1].Value;
+                    if (LanguageData.IsValidLanguageCode(languageCode))
+                    {
+                        subtitleLanguagesExternal.Add(languageCode); // e.g., "eng", "ger", "en", "de"
+                    }
                 }
             }
 
-            // Filter out tags that are not ISO 639-2/B language codes
-            subtitleLanguagesExternal = subtitleLanguagesExternal.Where(lang => lang.Length == 3).ToList();
-
             // Remove duplicates
             subtitleLanguagesExternal = subtitleLanguagesExternal.Distinct().ToList();
+
+            _logger.LogInformation("Final external subtitle languages for {VideoName}: [{Languages}]", video.Name, string.Join(", ", subtitleLanguagesExternal));
         }
 
         return subtitleLanguagesExternal;
