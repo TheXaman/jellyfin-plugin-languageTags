@@ -750,49 +750,49 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private List<Movie> GetMoviesFromLibrary()
     {
-        return [.. _libraryManager.GetItemList(new InternalItemsQuery
+        return _libraryManager.GetItemList(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Movie], // BaseItemKind.Series
             IsVirtualItem = false,
-        }).Select(m => m as Movie)];
+        }).OfType<Movie>().ToList();
     }
 
     private List<Series> GetSeriesFromLibrary()
     {
-        return [.. _libraryManager.GetItemList(new InternalItemsQuery
+        return _libraryManager.GetItemList(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Series],
             Recursive = true,
-        }).Select(s => s as Series)];
+        }).OfType<Series>().ToList();
     }
 
     private List<BoxSet> GetBoxSetsFromLibrary()
     {
-        return [.. _libraryManager.GetItemList(new InternalItemsQuery
+        return _libraryManager.GetItemList(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.BoxSet],
             CollapseBoxSetItems = false,
             Recursive = true,
             HasTmdbId = true
-        }).Select(b => b as BoxSet)];
+        }).OfType<BoxSet>().ToList();
     }
 
     private List<Season> GetSeasonsFromSeries(Series series)
     {
-        return [.. series.GetItemList(new InternalItemsQuery
+        return series.GetItemList(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Season],
             Recursive = true
-        }).Select(s => s as Season)];
+        }).OfType<Season>().ToList();
     }
 
     private List<Episode> GetEpisodesFromSeason(Season season)
     {
-        return [.. season.GetItemList(new InternalItemsQuery
+        return season.GetItemList(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Episode],
             Recursive = true
-        }).Select(e => e as Episode)];
+        }).OfType<Episode>().ToList();
     }
 
     private async Task<(List<string> AudioLanguages, List<string> SubtitleLanguages)> ProcessVideo(Video video, bool subtitleTags, CancellationToken cancellationToken)
