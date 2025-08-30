@@ -119,6 +119,100 @@ public class LanguageTagsManager : IHostedService, IDisposable
     }
 
     /// <summary>
+    /// Removes all language tags from all content in the library.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the removal process.</returns>
+    public async Task RemoveAllLanguageTags()
+    {
+        _logger.LogInformation("Starting removal of all language tags from library");
+
+        try
+        {
+            // Remove from all movies
+            var movies = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Movie },
+                Recursive = true
+            });
+
+            _logger.LogInformation("Removing language tags from {Count} movies", movies.Count);
+            foreach (var movie in movies)
+            {
+                RemoveAudioLanguageTags(movie);
+                RemoveSubtitleLanguageTags(movie);
+                await movie.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, CancellationToken.None).ConfigureAwait(false);
+            }
+
+            // Remove from all episodes
+            var episodes = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Episode },
+                Recursive = true
+            });
+
+            _logger.LogInformation("Removing language tags from {Count} episodes", episodes.Count);
+            foreach (var episode in episodes)
+            {
+                RemoveAudioLanguageTags(episode);
+                RemoveSubtitleLanguageTags(episode);
+                await episode.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, CancellationToken.None).ConfigureAwait(false);
+            }
+
+            // Remove from all seasons
+            var seasons = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Season },
+                Recursive = true
+            });
+
+            _logger.LogInformation("Removing language tags from {Count} seasons", seasons.Count);
+            foreach (var season in seasons)
+            {
+                RemoveAudioLanguageTags(season);
+                RemoveSubtitleLanguageTags(season);
+                await season.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, CancellationToken.None).ConfigureAwait(false);
+            }
+
+            // Remove from all series
+            var series = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Series },
+                Recursive = true
+            });
+
+            _logger.LogInformation("Removing language tags from {Count} series", series.Count);
+            foreach (var show in series)
+            {
+                RemoveAudioLanguageTags(show);
+                RemoveSubtitleLanguageTags(show);
+                await show.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, CancellationToken.None).ConfigureAwait(false);
+            }
+
+            // Remove from all collections/box sets
+            var collections = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.BoxSet },
+                Recursive = true
+            });
+
+            _logger.LogInformation("Removing language tags from {Count} collections", collections.Count);
+            foreach (var collection in collections)
+            {
+                RemoveAudioLanguageTags(collection);
+                RemoveSubtitleLanguageTags(collection);
+                await collection.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, CancellationToken.None).ConfigureAwait(false);
+            }
+
+            _logger.LogInformation("Completed removal of all language tags from library");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing all language tags from library");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Processes the libraries movies.
     /// </summary>
     /// <param name="fullScan">if set to <c>true</c> [full scan].</param>
@@ -332,8 +426,16 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }
             else
             {
-                await Task.Run(() => AddAudioLanguageTags(season, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("No audio language information found for SEASON {SeasonName} of {SeriesName}, added language_und(efined)", season.Name, series.Name);
+                var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
+                if (!disableUndTags)
+                {
+                    await Task.Run(() => AddAudioLanguageTags(season, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
+                    _logger.LogWarning("No audio language information found for SEASON {SeasonName} of {SeriesName}, added language_und(efined)", season.Name, series.Name);
+                }
+                else
+                {
+                    _logger.LogWarning("No audio language information found for SEASON {SeasonName} of {SeriesName}, skipped adding undefined tags", season.Name, series.Name);
+                }
             }
 
             // Add subtitle language tags to the season
@@ -364,8 +466,16 @@ public class LanguageTagsManager : IHostedService, IDisposable
         }
         else
         {
-            await Task.Run(() => AddAudioLanguageTags(series, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-            _logger.LogWarning("No audio language information found for SERIES {SeriesName}, added language_und(efined)", series.Name);
+            var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
+            if (!disableUndTags)
+            {
+                await Task.Run(() => AddAudioLanguageTags(series, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
+                _logger.LogWarning("No audio language information found for SERIES {SeriesName}, added language_und(efined)", series.Name);
+            }
+            else
+            {
+                _logger.LogWarning("No audio language information found for SERIES {SeriesName}, skipped adding undefined tags", series.Name);
+            }
         }
 
         // Add subtitle language tags to the series
@@ -465,8 +575,16 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }
             else
             {
-                await Task.Run(() => AddAudioLanguageTags(boxSet, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("No audio language information found for {BoxSetName}, added language_und(efined)", boxSet.Name);
+                var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
+                if (!disableUndTags)
+                {
+                    await Task.Run(() => AddAudioLanguageTags(boxSet, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
+                    _logger.LogWarning("No audio language information found for {BoxSetName}, added language_und(efined)", boxSet.Name);
+                }
+                else
+                {
+                    _logger.LogWarning("No audio language information found for {BoxSetName}, skipped adding undefined tags", boxSet.Name);
+                }
             }
 
             if (!subtitleTags) // skip subtitle tags

@@ -58,6 +58,21 @@ public class LanguageTagsController : ControllerBase, IDisposable
         return NoContent();
     }
 
+    /// <summary>
+    /// Removes all language tags from all content in the library.
+    /// </summary>
+    /// <response code="204">Language tags removal started successfully. </response>
+    /// <returns>A <see cref="NoContentResult"/> indicating success.</returns>
+    [HttpPost("RemoveAllLanguageTags")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult> RemoveAllLanguageTagsRequest()
+    {
+        _logger.LogInformation("Starting removal of all language tags from library");
+        await _languageTagsManager.RemoveAllLanguageTags().ConfigureAwait(false);
+        _logger.LogInformation("Completed removal of all language tags from library");
+        return NoContent();
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {

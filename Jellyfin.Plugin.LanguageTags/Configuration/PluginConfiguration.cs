@@ -16,6 +16,7 @@ public class PluginConfiguration : BasePluginConfiguration
         WhitelistLanguageTags = string.Empty;
         AddSubtitleTags = false;
         SynchronousRefresh = false;
+        DisableUndefinedLanguageTags = false;
     }
 
     /// <summary>
@@ -37,4 +38,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets a value indicating whether to refresh synchronously.
     /// </summary>
     public bool SynchronousRefresh { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to disable adding 'und' tags for undefined languages.
+    /// </summary>
+    public bool DisableUndefinedLanguageTags { get; set; }
 }

@@ -40,6 +40,17 @@
                         </div>
                         <hr />
                         <div class="checkboxContainer checkboxContainer-withDescription">
+                            <h3>Undefined Language Tags</h3>
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="disable-undefined-tags" name="disable-undefined-tags" />
+                                <span>Disable undefined language tags</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                <p>When enabled, the plugin will NOT add "language_und" tags for content where no language information can be determined. This is disabled by default (undefined tags are added).</p>
+                            </div>
+                        </div>
+                        <hr />
+                        <div class="checkboxContainer checkboxContainer-withDescription">
                             <h3>Full Refresh Options</h3>
                             <label>
                                 <input is="emby-checkbox" type="checkbox" id="always-force-full-refresh" name="always-force-full-refresh" />
@@ -55,6 +66,11 @@
                             <button is="emby-button" type="button" class="raised block" id="refresh-collections"><span>Force full refresh for Collections</span></button>
                             <button is="emby-button" type="button" class="raised block" id="refresh-external-subtitles"><span>Force full refresh for EXTERNAL Subtitles</span></button>
                             <button is="emby-button" type="button" class="raised block" id="refresh-everything"><span>Force full refresh for Everything</span></button>
+                        </div>
+                        <hr />
+                        <div>
+                            <h3>WARNING Remove All Language Tags</h3>
+                            <button is="emby-button" type="button" class="raised block emby-button-cancel" id="remove-all-tags"><span>Remove ALL language tags from Everything</span></button>
                         </div>
                         <hr />
                         <div class="checkboxContainer checkboxContainer-withDescription">
@@ -85,6 +101,7 @@
                         document.getElementById("whitelist-language-tags").value = config.WhitelistLanguageTags || "";
                         document.getElementById("synchronous-refresh").checked = config.SynchronousRefresh;
                         document.getElementById("subtitle-tags").checked = config.AddSubtitleTags;
+                        document.getElementById("disable-undefined-tags").checked = config.DisableUndefinedLanguageTags;
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -97,6 +114,7 @@
                         config.WhitelistLanguageTags = document.getElementById("whitelist-language-tags").value;
                         config.SynchronousRefresh = document.getElementById("synchronous-refresh").checked;
                         config.AddSubtitleTags = document.getElementById("subtitle-tags").checked;
+                        config.DisableUndefinedLanguageTags = document.getElementById("disable-undefined-tags").checked;
 
                         ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                     });
@@ -181,6 +199,23 @@
                     ApiClient.fetch(request)
                         .then(function () {
                             Dashboard.alert("Full language tag refresh for everything queued");
+                        })
+                        .catch(function () {
+                            Dashboard.alert({
+                                message: "Unexpected error occurred!",
+                            });
+                        });
+                });
+
+                $("#remove-all-tags").on("click", function () {
+                    var request = {
+                        url: ApiClient.getUrl("LanguageTags/RemoveAllLanguageTags"),
+                        type: "POST",
+                    };
+
+                    ApiClient.fetch(request)
+                        .then(function () {
+                            Dashboard.alert("Removal of all language tags queued");
                         })
                         .catch(function () {
                             Dashboard.alert({
