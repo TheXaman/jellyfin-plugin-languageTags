@@ -9,14 +9,13 @@ Jellyfin Language Tags Plugin is a .NET-based plugin that adds language tags to 
 ## ✨ Features
 
 - 🔄 Automatically scan the library with a scheduled job (default 24 hrs)
-- 🎧 Extracts languages from a files audio tracks via ffmpeg if no language tags are present
-- 💬 Optional feature to also add additional tags based on the medias subtitles (inlc. external subs)
-- 🏷️ Add the tags to the media for filtering
+- 🎧 Create language tags from video's audio tracks via ffmpeg
+- 💬 Create language tags from internal and external subtitles*
+- 🏷️ Populate items and collections with language tags for easy filtering, whitelisting or backlisting
 - 🎥 Works on movies, TV shows / series and collections
-- ✅ Whitelist option for languages to avoid spam if files contain many different languages
 - ⚡ Runs asynchronously for speed and takes about 2 mins for a full refresh with ~ 500 movies
 - 🐢 Synchronous mode for low-end devices like a Raspberry Pi
-- 🧰 Force refresh option and buttons if media files are replaced or in case of problems
+- 🧰 Force refresh options if media files are replaced or in case of problems
 
 ## 📚 Example Usage
 Install the plugin and scan your library. Then, navigate to the parental controls of individual users and restrict content based on desired language tags. For example:
@@ -52,3 +51,11 @@ dotnet publish --configuration Release
 ```
 
 4. Place the resulting file in the `plugins` folder.
+
+<br>
+
+---
+
+<br>
+  
+\***NOTE FOR EXTERNAL SUBTITLES**: LanguageTags, looks for languages based on the subtitle's file name. Currently the scan is case sensitive. Also, if your subtitles are named with language identifiers longer than three characters `example: video.english.srt instead of video.eng.srt` the LanguageTags may fail to generate tags successfully. Please rename your media accordingly, you can use free and easy tools like [ReNamer]([url](https://www.den4b.com/products/renamer)), to help you go quickly through your library, and to rename your external files as per [Jellyfin specifications]([url](https://jellyfin.org/docs/general/server/media/movies/#external-subtitles-and-audio-tracks)).
