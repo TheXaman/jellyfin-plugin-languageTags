@@ -103,7 +103,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 break;
             case "externalsubtitles":
                 // Process external subtitles
-                await ProcessLibraryExternalSubtitles(synchronously).ConfigureAwait(false);
+                await ProcessLibraryExternalSubtitles(synchronously, subtitleTags).ConfigureAwait(false);
                 break;
             default:
                 // Process movies
@@ -114,6 +114,10 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
                 // Process box sets / collections
                 await ProcessLibraryCollections(fullScan, synchronously, subtitleTags).ConfigureAwait(false);
+
+                // Process external subtitles
+                await ProcessLibraryExternalSubtitles(synchronously, subtitleTags).ConfigureAwait(false);
+
                 break;
         }
     }
@@ -613,8 +617,15 @@ public class LanguageTagsManager : IHostedService, IDisposable
     /// Processes the libraries external subtitles.
     /// </summary>
     /// <param name="synchronously">if set to <c>true</c> [synchronously].</param>
-    private async Task ProcessLibraryExternalSubtitles(bool synchronously)
+    /// <param name="subtitleTags">if set to <c>true</c> [extract subtitle languages].</param>
+    private async Task ProcessLibraryExternalSubtitles(bool synchronously, bool subtitleTags)
     {
+        if (!subtitleTags)
+    {
+            _logger.LogInformation("Skipping external subtitle processing as subtitle tag extraction is disabled");
+            return;
+        }
+
         _logger.LogInformation("**************************************");
         _logger.LogInformation("*  Processing external subtitles...  *");
         _logger.LogInformation("**************************************");
