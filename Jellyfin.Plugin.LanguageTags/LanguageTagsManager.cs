@@ -1150,7 +1150,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 var subtitleRegexExternal = new Regex(@"\.(\w{2,3})\.");
                 foreach (Match match in subtitleRegexExternal.Matches(subtitleFile))
                 {
-                    var languageCode = match.Groups[1].Value;
+                    var languageCode = match.Groups[1].Value.ToLowerInvariant();
                     if (LanguageData.IsValidLanguageCode(languageCode))
                     {
                         subtitleLanguagesExternal.Add(languageCode); // e.g., "eng", "ger", "en", "de"
