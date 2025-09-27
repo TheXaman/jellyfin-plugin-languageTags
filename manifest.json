@@ -10,7 +10,7 @@
     "versions": [
       {
         "version": "0.1.8.0",
-        "changelog": "- Bump version to 0.1.8.0\n- Make sure to only add 3 letter language tags, even if the extracted tags for a subtitle file are 2 letter codes\n- Make sure external subtitles are scanned daily if subtitle extraction is enabled, see #13\n- Fixes language tag refresh for external subtitles due to invalid stripping of nonexistent prefixes, see #13\n- Make sure all tags for external subtitles are lower case. Fixes #12\n- Update build.yaml and manifest.json for release version 0.1.7.0\n- Bump version to 0.1.7.0\n- Update .gitignore to include publish directory\n- Add LanguageData and LanguageInfo classes for ISO language code management\n- Add functionality to remove all language tags and configure undefined language tag handling Fixes #9\n- Fix for missing tags on content when missing individual episodes or seasons, closes #10\n- Refactor library item retrieval methods to use OfType<T>() for improved type safety\n- Update manifest.json to include image fix\n- Update manifest.json\n- added a logo to the readme and inside the jellyfin catalog and plugin page\n- Update README.md to include new subtitle-based tagging",
+        "changelog": "- Bump version to 0.1.8.0\n- Make sure to only add 3 letter language tags, even if the extracted tags for a subtitle file are 2 letter codes\n- Make sure external subtitles are scanned daily if subtitle extraction is enabled, see #13\n- Fixes language tag refresh for external subtitles due to invalid stripping of nonexistent prefixes, see #13\n- Make sure all tags for external subtitles are lower case. Fixes #12",
         "targetAbi": "10.10.0.0",
         "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.1.8.0/language-tags_0.1.8.0.zip",
         "checksum": "6fee5833eba0e0acb076667cbe362e12",
@@ -18,7 +18,7 @@
       },
       {
         "version": "0.1.7.0",
-        "changelog": "- Bump version to 0.1.7.0\n- Update .gitignore to include publish directory\n- Add LanguageData and LanguageInfo classes for ISO language code management\n- Add functionality to remove all language tags and configure undefined language tag handling Fixes #9\n- Fix for missing tags on content when missing individual episodes or seasons, closes #10\n- Refactor library item retrieval methods to use OfType<T>() for improved type safety\n- Update manifest.json to include image fix\n- Update manifest.json\n- added a logo to the readme and inside the jellyfin catalog and plugin page\n- Update README.md to include new subtitle-based tagging\n- Update build.yaml and manifest.json for release version 0.1.6.0\n- Bump version to 0.1.6.0\n- Added suppport for subtitle_language tags Handles subtitles included in files and external subtitles Based on #4\n- Update README.md\n- Update README.md\n- Enhance README.md with emojis for improved readability and engagement",
+        "changelog": "- Bump version to 0.1.7.0\n- Update .gitignore to include publish directory\n- Add LanguageData and LanguageInfo classes for ISO language code management\n- Add functionality to remove all language tags and configure undefined language tag handling Fixes #9\n- Fix for missing tags on content when missing individual episodes or seasons, closes #10\n- Refactor library item retrieval methods to use OfType<T>() for improved type safety\n- Update manifest.json to include image fix\n- Update manifest.json\n- added a logo to the readme and inside the jellyfin catalog and plugin page\n- Update README.md to include new subtitle-based tagging",
         "targetAbi": "10.10.0.0",
         "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.1.7.0/language-tags_0.1.7.0.zip",
         "checksum": "1acce4acc83ecb0b826a960f06878450",
@@ -26,7 +26,7 @@
       },
       {
         "version": "0.1.6.0",
-        "changelog": "- Bump version to 0.1.6.0\n- Added suppport for subtitle_language tags Handles subtitles included in files and external subtitles Based on #4\n- Update README.md\n- Update README.md\n- Enhance README.md with emojis for improved readability and engagement\n- Update build.yaml and manifest.json for release version 0.1.5.0\n- bump version to 0.1.5.0\n- updated workflow for changelog generation\n- Changed ffmpeg handling, now supports Linux, Windows, MacOS and custom installs",
+        "changelog": "- Bump version to 0.1.6.0\n- Added suppport for subtitle_language tags Handles subtitles included in files and external subtitles Based on #4\n- Update README.md\n- Update README.md\n- Enhance README.md with emojis for improved readability and engagement",
         "targetAbi": "10.10.6.0",
         "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.1.6.0/language-tags_0.1.6.0.zip",
         "checksum": "2f1766367615e0cfc86952d5f218fca5",
@@ -34,7 +34,6 @@
       },
       {
         "version": "0.1.5.0",
-        "changelog": "- bump version to 0.1.5.0\n- updated workflow for changelog generation\n- Changed ffmpeg handling, now supports Linux, Windows, MacOS and custom installs\n- Update build.yaml and manifest.json for release version 0.1.4.2\n- bump version to 0.1.4.2\n- Enhance configuration page and language tag filtering logic\n- Update README.md to include raw manifest link",
         "targetAbi": "10.10.0.0",
         "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.1.5.0/language-tags_0.1.5.0.zip",
         "checksum": "56b13a27833a11063da421f66e83576f",
@@ -42,7 +41,7 @@
       },
       {
         "version": "0.1.4.2",
-        "changelog": "- bump version to 0.1.4.2\n- Enhance configuration page and language tag filtering logic\n- Update README.md to include raw manifest link\n- Update build.yaml and manifest.json for release version 0.1.4.1\n- bump version to 0.1.4.1\n- removed all but last manifest.json entries\n- Update README.md\n- manifest.json cleanup: removed deleted releases\n- Smaller readme image\n- Updated Readme with example image\n- Removeed Directory.Build.props file",
+        "changelog": "- bump version to 0.1.4.2\n- Enhance configuration page and language tag filtering logic\n- Update README.md to include raw manifest link",
         "targetAbi": "10.10.0.0",
         "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.1.4.2/language-tags_0.1.4.2.zip",
         "checksum": "9ad471fd18c0d0c95e91df21901b49e5",
@@ -50,7 +49,7 @@
       },
       {
         "version": "0.1.4.1",
-        "changelog": "- bump version to 0.1.4.1\n- removed all but last manifest.json entries\n- Update README.md\n- manifest.json cleanup: removed deleted releases\n- Smaller readme image\n- Updated Readme with example image\n- Removeed Directory.Build.props file\n- Update build.yaml and manifest.json for release version 0.1.4.0\n- Bump version to 0.1.4.0\n- Update README.md to include installation instructions\n- Update build.yaml and manifest.json for release version 0.1.3.5\n- Bump version to 0.1.3.5\n- fixed build.yaml\n- Update build.yaml and manifest.json for release version 0.1.3.4\n- Bump version to 0.1.3.4\n- updated build.yaml creation to ensure jellyfin can read the resulting meta.json\n- Update build.yaml and manifest.json for release version 0.1.3.3\n- Bump version to 0.1.3.3\n- another test at tag creation\n- Update build.yaml and manifest.json for release version 0.1.3.2\n- Bump version to 0.1.3.2\n- Refactored release workflow to use environment variable for tag name",
+        "changelog": "- bump version to 0.1.4.1\n- removed all but last manifest.json entries\n- Update README.md\n- manifest.json cleanup: removed deleted releases\n- Smaller readme image\n- Updated Readme with example image\n- Removeed Directory.Build.props file",
         "targetAbi": "10.10.0.0",
         "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.1.4.1/language-tags_0.1.4.1.zip",
         "checksum": "7318c0270576714520fcb7e052d5ab5b",
@@ -58,7 +57,7 @@
       },
       {
         "version": "0.1.4.0",
-        "changelog": "- Bump version to 0.1.4.0\n- Update README.md to include installation instructions\n- Update build.yaml and manifest.json for release version 0.1.3.5\n- Bump version to 0.1.3.5\n- fixed build.yaml\n- Update build.yaml and manifest.json for release version 0.1.3.4\n- Bump version to 0.1.3.4\n- updated build.yaml creation to ensure jellyfin can read the resulting meta.json\n- Update build.yaml and manifest.json for release version 0.1.3.3\n- Bump version to 0.1.3.3\n- another test at tag creation\n- Update build.yaml and manifest.json for release version 0.1.3.2\n- Bump version to 0.1.3.2\n- Refactored release workflow to use environment variable for tag name",
+        "changelog": "- Bump version to 0.1.4.0\n- Update README.md to include installation instructions",
         "targetAbi": "10.10.0.0",
         "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.1.4.0/language-tags_0.1.4.0.zip",
         "checksum": "bf236d238f80a5e1d5b4714309b416fd",
