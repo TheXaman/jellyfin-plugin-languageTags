@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.1.8.0",
+        "changelog": "- Bump version to 0.1.8.0\n- Make sure to only add 3 letter language tags, even if the extracted tags for a subtitle file are 2 letter codes\n- Make sure external subtitles are scanned daily if subtitle extraction is enabled, see #13\n- Fixes language tag refresh for external subtitles due to invalid stripping of nonexistent prefixes, see #13\n- Make sure all tags for external subtitles are lower case. Fixes #12\n- Update build.yaml and manifest.json for release version 0.1.7.0\n- Bump version to 0.1.7.0\n- Update .gitignore to include publish directory\n- Add LanguageData and LanguageInfo classes for ISO language code management\n- Add functionality to remove all language tags and configure undefined language tag handling Fixes #9\n- Fix for missing tags on content when missing individual episodes or seasons, closes #10\n- Refactor library item retrieval methods to use OfType<T>() for improved type safety\n- Update manifest.json to include image fix\n- Update manifest.json\n- added a logo to the readme and inside the jellyfin catalog and plugin page\n- Update README.md to include new subtitle-based tagging",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.1.8.0/language-tags_0.1.8.0.zip",
+        "checksum": "6fee5833eba0e0acb076667cbe362e12",
+        "timestamp": "2025-09-27T12:26:41Z"
+      },
+      {
         "version": "0.1.7.0",
         "changelog": "- Bump version to 0.1.7.0\n- Update .gitignore to include publish directory\n- Add LanguageData and LanguageInfo classes for ISO language code management\n- Add functionality to remove all language tags and configure undefined language tag handling Fixes #9\n- Fix for missing tags on content when missing individual episodes or seasons, closes #10\n- Refactor library item retrieval methods to use OfType<T>() for improved type safety\n- Update manifest.json to include image fix\n- Update manifest.json\n- added a logo to the readme and inside the jellyfin catalog and plugin page\n- Update README.md to include new subtitle-based tagging\n- Update build.yaml and manifest.json for release version 0.1.6.0\n- Bump version to 0.1.6.0\n- Added suppport for subtitle_language tags Handles subtitles included in files and external subtitles Based on #4\n- Update README.md\n- Update README.md\n- Enhance README.md with emojis for improved readability and engagement",
         "targetAbi": "10.10.0.0",
