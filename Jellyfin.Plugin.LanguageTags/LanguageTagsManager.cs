@@ -764,9 +764,6 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     collectionSubtitleLanguages.AddRange(movieSubtitleLanguages);
                 }
 
-                // Strip "subtitle_language_" prefix
-                collectionSubtitleLanguages = collectionSubtitleLanguages.Select(lang => lang.Substring(18)).ToList();
-
                 // Add subtitle language tags to the box set
                 collectionSubtitleLanguages = collectionSubtitleLanguages.Distinct().ToList();
                 if (collectionSubtitleLanguages.Count > 0)
