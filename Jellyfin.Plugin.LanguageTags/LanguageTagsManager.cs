@@ -621,7 +621,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
     private async Task ProcessLibraryExternalSubtitles(bool synchronously, bool subtitleTags)
     {
         if (!subtitleTags)
-    {
+        {
             _logger.LogInformation("Skipping external subtitle processing as subtitle tag extraction is disabled");
             return;
         }
@@ -1161,7 +1161,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     var languageCode = match.Groups[1].Value.ToLowerInvariant();
                     if (LanguageData.IsValidLanguageCode(languageCode))
                     {
-                        subtitleLanguagesExternal.Add(languageCode); // e.g., "eng", "ger", "en", "de"
+                        // Convert 2-letter ISO codes to 3-letter ISO codes
+                        var threeLetterCode = ConvertToThreeLetterIsoCode(languageCode);
+                        subtitleLanguagesExternal.Add(threeLetterCode); // e.g., "eng", "ger"
                     }
                 }
             }
@@ -1275,6 +1277,33 @@ public class LanguageTagsManager : IHostedService, IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Converts a language code to its 3-letter ISO 639-2 equivalent.
+    /// If the input is already a 3-letter code, returns it as-is.
+    /// If the input is a 2-letter ISO 639-1 code, converts it to the corresponding 3-letter code.
+    /// </summary>
+    /// <param name="languageCode">The language code to convert.</param>
+    /// <returns>The 3-letter ISO 639-2 language code.</returns>
+    private string ConvertToThreeLetterIsoCode(string languageCode)
+    {
+        // If it's already a 3-letter code, return as-is
+        if (languageCode.Length == 3)
+        {
+            return languageCode;
+        }
+
+        // If it's a 2-letter code, try to get the corresponding 3-letter code
+        if (languageCode.Length == 2 && LanguageData.TryGetLanguageInfo(languageCode, out var languageInfo) && languageInfo != null)
+        {
+            // Prefer Iso6392 (3-letter code), but fall back to Iso6392B if needed
+            return !string.IsNullOrEmpty(languageInfo.Iso6392) ? languageInfo.Iso6392 :
+                   !string.IsNullOrEmpty(languageInfo.Iso6392B) ? languageInfo.Iso6392B : languageCode;
+        }
+
+        // If we can't convert it, return the original code
+        return languageCode;
     }
 
     /// <summary>
