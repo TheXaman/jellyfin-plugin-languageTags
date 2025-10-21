@@ -367,9 +367,17 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 if (episode is Video video)
                 {
-                    if (!HasValidPath(video.Path))
+                    // Try to get the file path - in Jellyfin 10.11.0, Path might be null for some items
+                    var filePath = video.Path;
+                    if (string.IsNullOrEmpty(filePath))
                     {
-                        _logger.LogWarning("Invalid file path for {VideoName} in Season {SeasonName} for {SeriesName}", video.Name, season.Name, series.Name);
+                        _logger.LogWarning("Invalid file path for {VideoName} in Season {SeasonName} for {SeriesName} (Path is null or empty)", video.Name, season.Name, series.Name);
+                        continue;
+                    }
+
+                    if (!HasValidPath(filePath))
+                    {
+                        _logger.LogWarning("Invalid file path for {VideoName} in Season {SeasonName} for {SeriesName} (Path: {Path}, File.Exists: false)", video.Name, season.Name, series.Name, filePath);
                         continue;
                     }
 
