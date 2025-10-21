@@ -133,11 +133,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
         try
         {
             // Remove from all movies
-            var movies = _libraryManager.GetItemList(new InternalItemsQuery
+            var movies = _libraryManager.QueryItems(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { BaseItemKind.Movie },
                 Recursive = true
-            });
+            }).Items;
 
             _logger.LogInformation("Removing language tags from {Count} movies", movies.Count);
             foreach (var movie in movies)
@@ -148,11 +148,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }
 
             // Remove from all episodes
-            var episodes = _libraryManager.GetItemList(new InternalItemsQuery
+            var episodes = _libraryManager.QueryItems(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { BaseItemKind.Episode },
                 Recursive = true
-            });
+            }).Items;
 
             _logger.LogInformation("Removing language tags from {Count} episodes", episodes.Count);
             foreach (var episode in episodes)
@@ -163,11 +163,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }
 
             // Remove from all seasons
-            var seasons = _libraryManager.GetItemList(new InternalItemsQuery
+            var seasons = _libraryManager.QueryItems(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { BaseItemKind.Season },
                 Recursive = true
-            });
+            }).Items;
 
             _logger.LogInformation("Removing language tags from {Count} seasons", seasons.Count);
             foreach (var season in seasons)
@@ -178,11 +178,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }
 
             // Remove from all series
-            var series = _libraryManager.GetItemList(new InternalItemsQuery
+            var series = _libraryManager.QueryItems(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { BaseItemKind.Series },
                 Recursive = true
-            });
+            }).Items;
 
             _logger.LogInformation("Removing language tags from {Count} series", series.Count);
             foreach (var show in series)
@@ -193,11 +193,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }
 
             // Remove from all collections/box sets
-            var collections = _libraryManager.GetItemList(new InternalItemsQuery
+            var collections = _libraryManager.QueryItems(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { BaseItemKind.BoxSet },
                 Recursive = true
-            });
+            }).Items;
 
             _logger.LogInformation("Removing language tags from {Count} collections", collections.Count);
             foreach (var collection in collections)
@@ -533,11 +533,12 @@ public class LanguageTagsManager : IHostedService, IDisposable
     {
         if (collection is BoxSet boxSet)
         {
-            var collectionItems = boxSet.GetItemList(new InternalItemsQuery
+            var collectionItems = _libraryManager.QueryItems(new InternalItemsQuery
             {
                 IncludeItemTypes = [BaseItemKind.Movie],
-                Recursive = true
-            }).Select(m => m as Movie).ToList();
+                Recursive = true,
+                ParentId = boxSet.Id
+            }).Items.Select(m => m as Movie).ToList();
 
             if (collectionItems.Count == 0)
             {
@@ -750,11 +751,12 @@ public class LanguageTagsManager : IHostedService, IDisposable
         {
             if (collection is BoxSet boxSet)
             {
-                var collectionItems = boxSet.GetItemList(new InternalItemsQuery
+                var collectionItems = _libraryManager.QueryItems(new InternalItemsQuery
                 {
                     IncludeItemTypes = [BaseItemKind.Movie],
-                    Recursive = true
-                }).Select(m => m as Movie).ToList();
+                    Recursive = true,
+                    ParentId = boxSet.Id
+                }).Items.Select(m => m as Movie).ToList();
 
                 if (collectionItems.Count == 0)
                 {
@@ -880,49 +882,51 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private List<Movie> GetMoviesFromLibrary()
     {
-        return _libraryManager.GetItemList(new InternalItemsQuery
+        return _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Movie], // BaseItemKind.Series
             IsVirtualItem = false,
-        }).OfType<Movie>().ToList();
+        }).Items.OfType<Movie>().ToList();
     }
 
     private List<Series> GetSeriesFromLibrary()
     {
-        return _libraryManager.GetItemList(new InternalItemsQuery
+        return _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Series],
             Recursive = true,
-        }).OfType<Series>().ToList();
+        }).Items.OfType<Series>().ToList();
     }
 
     private List<BoxSet> GetBoxSetsFromLibrary()
     {
-        return _libraryManager.GetItemList(new InternalItemsQuery
+        return _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.BoxSet],
             CollapseBoxSetItems = false,
             Recursive = true,
             HasTmdbId = true
-        }).OfType<BoxSet>().ToList();
+        }).Items.OfType<BoxSet>().ToList();
     }
 
     private List<Season> GetSeasonsFromSeries(Series series)
     {
-        return series.GetItemList(new InternalItemsQuery
+        return _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Season],
-            Recursive = true
-        }).OfType<Season>().ToList();
+            Recursive = true,
+            ParentId = series.Id
+        }).Items.OfType<Season>().ToList();
     }
 
     private List<Episode> GetEpisodesFromSeason(Season season)
     {
-        return season.GetItemList(new InternalItemsQuery
+        return _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Episode],
-            Recursive = true
-        }).OfType<Episode>().ToList();
+            Recursive = true,
+            ParentId = season.Id
+        }).Items.OfType<Episode>().ToList();
     }
 
     private async Task<(List<string> AudioLanguages, List<string> SubtitleLanguages)> ProcessVideo(Video video, bool subtitleTags, CancellationToken cancellationToken)
