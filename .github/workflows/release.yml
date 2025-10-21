@@ -80,6 +80,7 @@ jobs:
           yq eval '
             .version = strenv(BASE_VERSION) |
             .targetAbi = "10.11.0.0" |
+            .framework = "net9.0" |
             .changelog = strenv(FORMATTED_CHANGELOG)
           ' build.yaml > build.tmp.yaml && mv build.tmp.yaml build.yaml
 
@@ -115,7 +116,8 @@ jobs:
       - name: Update manifest file
         run: |
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v$TAG_VERSION/language-tags_$TAG_VERSION.zip"
+          # Use VERSION (without -preview) in the zip filename so Jellyfin can read it
+          sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v$TAG_VERSION/language-tags_$VERSION.zip"
           formatted_changelog=$(echo "$FORMATTED_CHANGELOG" | jq -r '.[]' | sed 's/^/- /')
           if [[ "${{ env.IS_PREVIEW }}" == "true" ]]; then
             changelog_with_note="⚠️ PREVIEW RELEASE - For testing only\n\n${formatted_changelog}"
