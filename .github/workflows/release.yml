@@ -23,12 +23,25 @@ jobs:
         id: get_version
         run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
+      - name: Get last release tag
+        id: get_last_release
+        run: |
+          # Get the most recent tag
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$last_tag" ]; then
+            echo "No previous tags found, using all commits"
+            echo "FROM_REF=HEAD~10" >> $GITHUB_ENV
+          else
+            echo "Last tag: $last_tag"
+            echo "FROM_REF=$last_tag" >> $GITHUB_ENV
+          fi
+
       - name: Generate Changelog
         uses: Bullrich/generate-release-changelog@master
         id: changelog
         env:
           REPO: ${{ github.repository }}
-          from: "latest"
+          from: ${{ env.FROM_REF }}
           to: "HEAD"
 
       - name: Format Changelog to JSON
@@ -41,7 +54,7 @@ jobs:
         run: |
           yq eval '
             .version = strenv(VERSION) |
-            .targetAbi = "10.10.0.0" |
+            .targetAbi = "10.11.0.0" |
             .changelog = strenv(FORMATTED_CHANGELOG)
           ' build.yaml > build.tmp.yaml && mv build.tmp.yaml build.yaml
 
@@ -53,13 +66,13 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
 
       - name: Build Jellyfin Plugin
         uses: oddstr13/jellyfin-plugin-repository-manager@v0.5.0
         id: jprm
         with:
-          dotnet-target: net8.0
+          dotnet-target: net9.0
 
       - name: Generate Release Checksums
         run: |
@@ -80,7 +93,7 @@ jobs:
             '.[0].versions |= [{
               version: $strippedversion,
               changelog: $changelog,
-              targetAbi: "10.10.0.0",
+              targetAbi: "10.11.0.0",
               sourceUrl: $sourceUrl,
               checksum: $checksum,
               timestamp: $timestamp
@@ -94,6 +107,14 @@ jobs:
           git add build.yaml manifest.json
           git commit -m "Update build.yaml and manifest.json for release version $VERSION"
           git push origin HEAD:main
+
+      - name: Generate Final Changelog (including update commit)
+        uses: Bullrich/generate-release-changelog@master
+        id: final_changelog
+        env:
+          REPO: ${{ github.repository }}
+          from: ${{ env.FROM_REF }}
+          to: "HEAD"
 
       - name: Create Tag
         env:
@@ -109,7 +130,7 @@ jobs:
           VERSION: ${{ env.VERSION }}
         with:
           tag_name: "v${{ env.VERSION }}"
-          body: ${{ steps.changelog.outputs.changelog }}
+          body: ${{ steps.final_changelog.outputs.changelog }}
           files: |
             checksums.md5
             ${{ steps.jprm.outputs.artifact }}
