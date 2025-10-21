@@ -30,15 +30,13 @@ public class LanguageTagsController : ControllerBase, IDisposable
     /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{LanguageTagsController}"/> interface.</param>
     /// <param name="languageTagsLogger">Instance of the <see cref="ILogger{LanguageTagsManager}"/> interface.</param>
-    /// <param name="mediaEncoder">Instance of the <see cref="IMediaEncoder"/> interface.</param>
     public LanguageTagsController(
         ILibraryManager libraryManager,
         ICollectionManager collectionManager,
         ILogger<LanguageTagsController> logger,
-        ILogger<LanguageTagsManager> languageTagsLogger,
-        IMediaEncoder mediaEncoder)
+        ILogger<LanguageTagsManager> languageTagsLogger)
     {
-        _languageTagsManager = new LanguageTagsManager(libraryManager, collectionManager, languageTagsLogger, mediaEncoder);
+        _languageTagsManager = new LanguageTagsManager(libraryManager, collectionManager, languageTagsLogger);
         _logger = logger;
     }
 
