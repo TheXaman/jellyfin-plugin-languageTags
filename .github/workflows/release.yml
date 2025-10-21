@@ -41,11 +41,10 @@ jobs:
         run: |
           BASE_VERSION=$(cat VERSION)
           echo "BASE_VERSION=${BASE_VERSION}" >> $GITHUB_ENV
+          echo "VERSION=${BASE_VERSION}" >> $GITHUB_ENV
           if [[ "${{ env.IS_PREVIEW }}" == "true" ]]; then
-            echo "VERSION=${BASE_VERSION}-preview" >> $GITHUB_ENV
             echo "TAG_VERSION=${BASE_VERSION}-preview" >> $GITHUB_ENV
           else
-            echo "VERSION=${BASE_VERSION}" >> $GITHUB_ENV
             echo "TAG_VERSION=${BASE_VERSION}" >> $GITHUB_ENV
           fi
 
@@ -118,8 +117,13 @@ jobs:
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v$TAG_VERSION/language-tags_$TAG_VERSION.zip"
           formatted_changelog=$(echo "$FORMATTED_CHANGELOG" | jq -r '.[]' | sed 's/^/- /')
-          jq --arg strippedversion "$TAG_VERSION" \
-            --arg changelog "$formatted_changelog" \
+          if [[ "${{ env.IS_PREVIEW }}" == "true" ]]; then
+            changelog_with_note="⚠️ PREVIEW RELEASE - For testing only\n\n${formatted_changelog}"
+          else
+            changelog_with_note="${formatted_changelog}"
+          fi
+          jq --arg strippedversion "$VERSION" \
+            --arg changelog "$changelog_with_note" \
             --arg checksum "$CHECKSUM" \
             --arg timestamp "$timestamp" \
             --arg sourceUrl "$sourceUrl" \
