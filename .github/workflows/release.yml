@@ -61,19 +61,6 @@ jobs:
             echo "FROM_REF=$last_tag" >> $GITHUB_ENV
           fi
 
-      - name: Get last release tag
-        id: get_last_release
-        run: |
-          # Get the most recent tag
-          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$last_tag" ]; then
-            echo "No previous tags found, using all commits"
-            echo "FROM_REF=HEAD~10" >> $GITHUB_ENV
-          else
-            echo "Last tag: $last_tag"
-            echo "FROM_REF=$last_tag" >> $GITHUB_ENV
-          fi
-
       - name: Generate Changelog
         uses: Bullrich/generate-release-changelog@master
         id: changelog
