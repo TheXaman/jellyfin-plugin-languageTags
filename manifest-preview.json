@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.2.0.1",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Fix: Remove -preview suffix from version in manifest to maintain Jellyfin compatibility\n- Update build.yaml and manifest-preview.json for preview version 0.2.0.1-preview\n- Bump version to 0.2.0.1\n- Fix preview release workflow - use base version for build\n- Add preview release support and manifest file\n- Enhance release workflow: update version handling, target .NET 9.0, and improve changelog generation\n- - Replace deprecated GetItemList() with QueryItems() API - Update TaskTriggerInfo to use TaskTriggerInfoType.IntervalTrigger\n- - Update to target Jellyfin 10.11.0 - Migrate from .NET 8.0 to .NET 9.0\n- Merge pull request #15 from Rand0mB0y:patch-1\n- Update README.md to clarify external subtitles note and switched to PowerRename tool\n- manual cleanup of the changelogs\n- Update README.md",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.2.0.1-preview/language-tags_0.2.0.1-preview.zip",
+        "checksum": "4e0ab0faf5a3b765adef999229aaba22",
+        "timestamp": "2025-10-21T10:30:40Z"
+      },
+      {
         "version": "0.2.0.1-preview",
         "changelog": "- Bump version to 0.2.0.1\n- Fix preview release workflow - use base version for build\n- Add preview release support and manifest file\n- Enhance release workflow: update version handling, target .NET 9.0, and improve changelog generation\n- - Replace deprecated GetItemList() with QueryItems() API - Update TaskTriggerInfo to use TaskTriggerInfoType.IntervalTrigger\n- - Update to target Jellyfin 10.11.0 - Migrate from .NET 8.0 to .NET 9.0\n- Merge pull request #15 from Rand0mB0y:patch-1\n- Update README.md to clarify external subtitles note and switched to PowerRename tool\n- manual cleanup of the changelogs\n- Update build.yaml and manifest.json for release version 0.1.8.0\n- Bump version to 0.1.8.0\n- Make sure to only add 3 letter language tags, even if the extracted tags for a subtitle file are 2 letter codes\n- Make sure external subtitles are scanned daily if subtitle extraction is enabled, see #13\n- Fixes language tag refresh for external subtitles due to invalid stripping of nonexistent prefixes, see #13\n- Make sure all tags for external subtitles are lower case. Fixes #12\n- Update README.md",
         "targetAbi": "10.11.0.0",
