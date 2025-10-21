@@ -55,6 +55,7 @@ jobs:
           yq eval '
             .version = strenv(VERSION) |
             .targetAbi = "10.11.0.0" |
+            .framework = "net9.0" |
             .changelog = strenv(FORMATTED_CHANGELOG)
           ' build.yaml > build.tmp.yaml && mv build.tmp.yaml build.yaml
 
