@@ -17,6 +17,8 @@ public class PluginConfiguration : BasePluginConfiguration
         AddSubtitleTags = false;
         SynchronousRefresh = false;
         DisableUndefinedLanguageTags = false;
+        AudioLanguageTagPrefix = "language_";
+        SubtitleLanguageTagPrefix = "subtitle_language_";
     }
 
     /// <summary>
@@ -43,4 +45,14 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets a value indicating whether to disable adding 'und' tags for undefined languages.
     /// </summary>
     public bool DisableUndefinedLanguageTags { get; set; }
+
+    /// <summary>
+    /// Gets or sets the prefix for audio language tags.
+    /// </summary>
+    public string AudioLanguageTagPrefix { get; set; }
+
+    /// <summary>
+    /// Gets or sets the prefix for subtitle language tags.
+    /// </summary>
+    public string SubtitleLanguageTagPrefix { get; set; }
 }

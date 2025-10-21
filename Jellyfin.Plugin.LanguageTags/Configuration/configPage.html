@@ -28,6 +28,22 @@
                             </div>
                         </div>
                         <hr />
+                        <div class="verticalSection">
+                            <h3>Custom Tag Prefixes</h3>
+                            <label for="audio-language-tag-prefix">Audio Language Tag Prefix:</label>
+                            <input type="text" id="audio-language-tag-prefix" name="audio-language-tag-prefix" placeholder="language_" />
+                            <div class="fieldDescription">
+                                <p>Customize the prefix for audio language tags. Default is "language_". Tags will be created as "[prefix][language_code]", e.g., "language_eng".</p>
+                                <p><strong>Leave empty to use default.</strong> If specified, must be at least 3 characters and different from subtitle prefix.</p>
+                            </div>
+                            <label for="subtitle-language-tag-prefix">Subtitle Language Tag Prefix:</label>
+                            <input type="text" id="subtitle-language-tag-prefix" name="subtitle-language-tag-prefix" placeholder="subtitle_language_" />
+                            <div class="fieldDescription">
+                                <p>Customize the prefix for subtitle language tags. Default is "subtitle_language_". Tags will be created as "[prefix][language_code]", e.g., "subtitle_language_eng".</p>
+                                <p><strong>Leave empty to use default.</strong> If specified, must be at least 3 characters and different from audio prefix.</p>
+                            </div>
+                        </div>
+                        <hr />
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <h3>Subtitle Language Tags</h3>
                             <label>
@@ -102,6 +118,8 @@
                         document.getElementById("synchronous-refresh").checked = config.SynchronousRefresh;
                         document.getElementById("subtitle-tags").checked = config.AddSubtitleTags;
                         document.getElementById("disable-undefined-tags").checked = config.DisableUndefinedLanguageTags;
+                        document.getElementById("audio-language-tag-prefix").value = config.AudioLanguageTagPrefix || "";
+                        document.getElementById("subtitle-language-tag-prefix").value = config.SubtitleLanguageTagPrefix || "";
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -110,11 +128,32 @@
                     Dashboard.showLoadingMsg();
 
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        var audioPrefix = document.getElementById("audio-language-tag-prefix").value.trim();
+                        var subtitlePrefix = document.getElementById("subtitle-language-tag-prefix").value.trim();
+
+                        // Validate prefixes only if they're not empty (empty = use server defaults)
+                        var validationError = null;
+                        if (audioPrefix !== "" && audioPrefix.length < 3) {
+                            validationError = "Audio language tag prefix must be at least 3 characters long (or leave empty for default).";
+                        } else if (subtitlePrefix !== "" && subtitlePrefix.length < 3) {
+                            validationError = "Subtitle language tag prefix must be at least 3 characters long (or leave empty for default).";
+                        } else if (audioPrefix !== "" && subtitlePrefix !== "" && audioPrefix.toLowerCase() === subtitlePrefix.toLowerCase()) {
+                            validationError = "Audio and subtitle prefixes must be different.";
+                        }
+
+                        if (validationError) {
+                            Dashboard.hideLoadingMsg();
+                            Dashboard.alert(validationError);
+                            return false;
+                        }
+
                         config.AlwaysForceFullRefresh = document.getElementById("always-force-full-refresh").checked;
                         config.WhitelistLanguageTags = document.getElementById("whitelist-language-tags").value;
                         config.SynchronousRefresh = document.getElementById("synchronous-refresh").checked;
                         config.AddSubtitleTags = document.getElementById("subtitle-tags").checked;
                         config.DisableUndefinedLanguageTags = document.getElementById("disable-undefined-tags").checked;
+                        config.AudioLanguageTagPrefix = audioPrefix;
+                        config.SubtitleLanguageTagPrefix = subtitlePrefix;
 
                         ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                     });

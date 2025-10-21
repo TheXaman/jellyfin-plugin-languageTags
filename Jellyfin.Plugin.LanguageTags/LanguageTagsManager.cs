@@ -347,7 +347,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         if (!fullScan)
                         {
                             _logger.LogInformation("Subtitle tags exist for {VideoName}", video.Name);
-                            var episodeLanguagesTmp = StripTagPrefix(GetSubtitleLanguageTags(video), "subtitle_language_");
+                            var episodeLanguagesTmp = StripSubtitleTagPrefix(GetSubtitleLanguageTags(video));
                             seasonSubtitleLanguages.AddRange(episodeLanguagesTmp);
                         }
                         else
@@ -362,7 +362,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         if (!fullScan)
                         {
                             _logger.LogInformation("Audio tags exist, skipping {VideoName}", video.Name);
-                            var episodeLanguagesTmp = StripTagPrefix(GetAudioLanguageTags(video), "language_");
+                            var episodeLanguagesTmp = StripAudioTagPrefix(GetAudioLanguageTags(video));
                             seasonAudioLanguages.AddRange(episodeLanguagesTmp);
                             continue;
                         }
@@ -510,8 +510,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 collectionSubtitleLanguages.AddRange(movieSubtitleLanguages);
             }
 
-            // Strip "language_" prefix
-            collectionAudioLanguages = StripTagPrefix(collectionAudioLanguages, "language_");
+            // Strip audio language prefix
+            collectionAudioLanguages = StripAudioTagPrefix(collectionAudioLanguages);
 
             // Add language tags to the box set
             collectionAudioLanguages = collectionAudioLanguages.Distinct().ToList();
@@ -526,8 +526,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 return;
             }
 
-            // Strip "subtitle_language_" prefix
-            collectionSubtitleLanguages = StripTagPrefix(collectionSubtitleLanguages, "subtitle_language_");
+            // Strip subtitle language prefix
+            collectionSubtitleLanguages = StripSubtitleTagPrefix(collectionSubtitleLanguages);
 
             // Add subtitle language tags to the box set
             collectionSubtitleLanguages = collectionSubtitleLanguages.Distinct().ToList();
@@ -818,9 +818,64 @@ public class LanguageTagsManager : IHostedService, IDisposable
         return audioLanguages;
     }
 
-    private static List<string> StripTagPrefix(IEnumerable<string> tags, string prefix)
+    private string GetAudioLanguageTagPrefix()
     {
-        return tags.Select(tag => tag.Substring(prefix.Length)).ToList();
+        var prefix = Plugin.Instance?.Configuration?.AudioLanguageTagPrefix;
+        var subtitlePrefix = Plugin.Instance?.Configuration?.SubtitleLanguageTagPrefix;
+
+        // Validate prefix: must be at least 3 characters and different from subtitle prefix
+        if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 3)
+        {
+            return "language_";
+        }
+
+        // Ensure audio and subtitle prefixes are different
+        if (!string.IsNullOrWhiteSpace(subtitlePrefix) && prefix.Equals(subtitlePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Audio and subtitle prefixes cannot be identical. Using default audio prefix 'language_'");
+            return "language_";
+        }
+
+        return prefix;
+    }
+
+    private string GetSubtitleLanguageTagPrefix()
+    {
+        var prefix = Plugin.Instance?.Configuration?.SubtitleLanguageTagPrefix;
+        var audioPrefix = Plugin.Instance?.Configuration?.AudioLanguageTagPrefix;
+
+        // Validate prefix: must be at least 3 characters and different from audio prefix
+        if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 3)
+        {
+            return "subtitle_language_";
+        }
+
+        // Ensure audio and subtitle prefixes are different
+        if (!string.IsNullOrWhiteSpace(audioPrefix) && prefix.Equals(audioPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Audio and subtitle prefixes cannot be identical. Using default subtitle prefix 'subtitle_language_'");
+            return "subtitle_language_";
+        }
+
+        return prefix;
+    }
+
+    private List<string> StripAudioTagPrefix(IEnumerable<string> tags)
+    {
+        var prefix = GetAudioLanguageTagPrefix();
+        return tags
+            .Where(tag => tag.Length > prefix.Length)
+            .Select(tag => tag.Substring(prefix.Length))
+            .ToList();
+    }
+
+    private List<string> StripSubtitleTagPrefix(IEnumerable<string> tags)
+    {
+        var prefix = GetSubtitleLanguageTagPrefix();
+        return tags
+            .Where(tag => tag.Length > prefix.Length)
+            .Select(tag => tag.Substring(prefix.Length))
+            .ToList();
     }
 
     private List<Movie> GetMoviesFromLibrary()
@@ -973,27 +1028,32 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private bool HasAudioLanguageTags(BaseItem item)
     {
-        return item.Tags.Any(tag => tag.StartsWith("language_", StringComparison.OrdinalIgnoreCase));
+        var prefix = GetAudioLanguageTagPrefix();
+        return item.Tags.Any(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
     }
 
     private bool HasSubtitleLanguageTags(BaseItem item)
     {
-        return item.Tags.Any(tag => tag.StartsWith("subtitle_language_", StringComparison.OrdinalIgnoreCase));
+        var prefix = GetSubtitleLanguageTagPrefix();
+        return item.Tags.Any(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
     }
 
     private List<string> GetAudioLanguageTags(BaseItem item)
     {
-        return item.Tags.Where(tag => tag.StartsWith("language_", StringComparison.OrdinalIgnoreCase)).ToList();
+        var prefix = GetAudioLanguageTagPrefix();
+        return item.Tags.Where(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
     private List<string> GetSubtitleLanguageTags(BaseItem item)
     {
-        return item.Tags.Where(tag => tag.StartsWith("subtitle_language_", StringComparison.OrdinalIgnoreCase)).ToList();
+        var prefix = GetSubtitleLanguageTagPrefix();
+        return item.Tags.Where(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
     private void RemoveAudioLanguageTags(BaseItem item)
     {
-        foreach (var tag in item.Tags.Where(tag => tag.StartsWith("language_", StringComparison.OrdinalIgnoreCase)).ToList())
+        var prefix = GetAudioLanguageTagPrefix();
+        foreach (var tag in item.Tags.Where(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList())
         {
             var name = tag.ToString();
             var current = item.Tags;
@@ -1006,7 +1066,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private void RemoveSubtitleLanguageTags(BaseItem item)
     {
-        foreach (var tag in item.Tags.Where(tag => tag.StartsWith("subtitle_language_", StringComparison.OrdinalIgnoreCase)).ToList())
+        var prefix = GetSubtitleLanguageTagPrefix();
+        foreach (var tag in item.Tags.Where(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList())
         {
             var name = tag.ToString();
             var current = item.Tags;
@@ -1088,9 +1149,10 @@ public class LanguageTagsManager : IHostedService, IDisposable
         // Filter out languages based on the whitelist
         languages = FilterOutLanguages(item, languages);
 
+        var prefix = GetAudioLanguageTagPrefix();
         foreach (var language in languages)
         {
-            string tag = $"language_{language}";
+            string tag = $"{prefix}{language}";
 
             // Avoid duplicates
             if (!item.Tags.Contains(tag))
@@ -1111,9 +1173,10 @@ public class LanguageTagsManager : IHostedService, IDisposable
         // Filter out languages based on the whitelist
         languages = FilterOutLanguages(item, languages);
 
+        var prefix = GetSubtitleLanguageTagPrefix();
         foreach (var language in languages)
         {
-            string tag = $"subtitle_language_{language}";
+            string tag = $"{prefix}{language}";
 
             // Avoid duplicates
             if (!item.Tags.Contains(tag))
