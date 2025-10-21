@@ -12,4 +12,4 @@ owner: "TheXaman"
 imageUrl: "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png"
 artifacts:
   - "Jellyfin.Plugin.LanguageTags.dll"
-changelog: "[\"Update build.yaml to target .NET 9.0 framework\",\"Bump version to 0.2.0.1\"]"
+changelog: "[\"Update build.yaml and manifest.json for release version 0.2.0.1\",\"Update build.yaml to target .NET 9.0 framework\",\"Bump version to 0.2.0.1\",\"Enhance release workflow: update version handling, target .NET 9.0, and improve changelog generation\",\"- Replace deprecated GetItemList() with QueryItems() API - Update TaskTriggerInfo to use TaskTriggerInfoType.IntervalTrigger\",\"- Update to target Jellyfin 10.11.0 - Migrate from .NET 8.0 to .NET 9.0\"]"
