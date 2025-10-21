@@ -260,7 +260,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
     {
         if (movie is Video video)
         {
-            if (!HasValidPath(video.Path))
+            if (!HasValidPath(video))
             {
                 _logger.LogWarning("Invalid file path for {VideoName}", video.Name);
                 return;
@@ -367,7 +367,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 if (episode is Video video)
                 {
-                    if (!HasValidPath(video.Path))
+                    if (!HasValidPath(video))
                     {
                         _logger.LogWarning("Invalid file path for {VideoName} in Season {SeasonName} for {SeriesName}", video.Name, season.Name, series.Name);
                         continue;
@@ -727,7 +727,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             return;
         }
 
-        if (!HasValidPath(video.Path))
+        if (!HasValidPath(video))
         {
             _logger.LogWarning("Invalid file path for {VideoName}", video.Name);
             return;
@@ -822,7 +822,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 if (episode is Video video)
                 {
-                    if (!HasValidPath(video.Path))
+                    if (!HasValidPath(video))
                     {
                         _logger.LogWarning("Invalid file path for {VideoName} in Season {SeasonName} for {SeriesName}", video.Name, season.Name, series.Name);
                         continue;
@@ -915,7 +915,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
         {
             IncludeItemTypes = [BaseItemKind.Season],
             Recursive = true,
-            ParentId = series.Id
+            ParentId = series.Id,
+            IsVirtualItem = false
         }).Items.OfType<Season>().ToList();
     }
 
@@ -925,7 +926,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
         {
             IncludeItemTypes = [BaseItemKind.Episode],
             Recursive = true,
-            ParentId = season.Id
+            ParentId = season.Id,
+            IsVirtualItem = false
         }).Items.OfType<Episode>().ToList();
     }
 
@@ -934,10 +936,23 @@ public class LanguageTagsManager : IHostedService, IDisposable
         var audioLanguages = new List<string>();
         var subtitleLanguages = new List<string>();
 
+        if (!HasValidPath(video))
+        {
+            _logger.LogWarning("Cannot process video {VideoName} - invalid path", video.Name);
+            return (audioLanguages, subtitleLanguages);
+        }
+
+        // Get the file path (HasValidPath already ensures it's valid)
+        var filePath = video.Path;
+        if (string.IsNullOrEmpty(filePath))
+        {
+            filePath = _libraryManager.GetItemById(video.Id)?.Path;
+        }
+
         try
         {
             // Step 1: Run FFmpeg
-            string ffmpegOutput = await Task.Run(() => RunFFmpeg(video.Path)).ConfigureAwait(false);
+            string ffmpegOutput = await Task.Run(() => RunFFmpeg(filePath!)).ConfigureAwait(false);
 
             // Step 2: Extract audio languages
             audioLanguages = await Task.Run(() => ExtractAudioLanguages(ffmpegOutput)).ConfigureAwait(false);
@@ -1027,8 +1042,14 @@ public class LanguageTagsManager : IHostedService, IDisposable
         }
     }
 
-    private bool HasValidPath(string filePath)
+    private bool HasValidPath(Video video)
     {
+        var filePath = video.Path;
+        if (string.IsNullOrEmpty(filePath))
+        {
+            filePath = _libraryManager.GetItemById(video.Id)?.Path;
+        }
+
         return !string.IsNullOrEmpty(filePath) && File.Exists(filePath);
     }
 

@@ -1,7 +1,7 @@
 ---
 name: "Language Tags"
 guid: "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb"
-version: "0.2.0.1"
+version: "0.2.0.3"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 overview: "This plugin automatically adds language tags to the media."
@@ -12,4 +12,4 @@ owner: "TheXaman"
 imageUrl: "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png"
 artifacts:
   - "Jellyfin.Plugin.LanguageTags.dll"
-changelog: "[\"Update build.yaml and manifest.json for release version 0.2.0.1\",\"Update build.yaml to target .NET 9.0 framework\",\"Bump version to 0.2.0.1\",\"Enhance release workflow: update version handling, target .NET 9.0, and improve changelog generation\",\"- Replace deprecated GetItemList() with QueryItems() API - Update TaskTriggerInfo to use TaskTriggerInfoType.IntervalTrigger\",\"- Update to target Jellyfin 10.11.0 - Migrate from .NET 8.0 to .NET 9.0\"]"
+changelog: "[\"Bump version to 0.2.0.3\",\"Improve file path validation for videos in LanguageTagsManager to handle null or empty paths in Jellyfin 10.11.0\",\"Update build.yaml to include .framework version and adjust sourceUrl for Jellyfin compatibility\",\"Update sourceUrl in manifest-preview.json\",\"Update build.yaml and manifest-preview.json for preview version 0.2.0.2-preview\",\"Bump version to 0.2.0.2\",\"Update build.yaml and manifest-preview.json for preview version 0.2.0.1-preview\",\"Fix: Remove -preview suffix from version in manifest to maintain Jellyfin compatibility\"]"

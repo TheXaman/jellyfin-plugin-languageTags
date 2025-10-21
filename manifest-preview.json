@@ -1,0 +1,29 @@
+[
+  {
+    "guid": "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb",
+    "name": "Language Tags (Preview)",
+    "overview": "This plugin automatically adds language tags to the media. (Preview Channel)",
+    "description": "This plugin automatically scans the libraries and adds language tags to the media items. The languages are extracted from the audio tracks. Media types covered are movies, tv shows / series and collections. THIS IS THE PREVIEW CHANNEL - Use for testing new versions before they go to stable.",
+    "owner": "TheXaman",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
+    "versions": [
+      {
+        "version": "0.2.0.3",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.2.0.3\n- Improve file path validation for videos in LanguageTagsManager to handle null or empty paths in Jellyfin 10.11.0\n- Update build.yaml to include .framework version and adjust sourceUrl for Jellyfin compatibility\n- Update sourceUrl in manifest-preview.json\n- Update build.yaml and manifest-preview.json for preview version 0.2.0.2-preview\n- Bump version to 0.2.0.2\n- Update build.yaml and manifest-preview.json for preview version 0.2.0.1-preview\n- Fix: Remove -preview suffix from version in manifest to maintain Jellyfin compatibility",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.2.0.3-preview/language-tags_0.2.0.3.zip",
+        "checksum": "9c2c270a9911ec9d0b7266aa20fb0d0b",
+        "timestamp": "2025-10-21T11:01:57Z"
+      },
+      {
+        "version": "0.2.0.2",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.2.0.2\n- Update build.yaml and manifest-preview.json for preview version 0.2.0.1-preview\n- Fix: Remove -preview suffix from version in manifest to maintain Jellyfin compatibility\n- Update build.yaml and manifest-preview.json for preview version 0.2.0.1-preview\n- Bump version to 0.2.0.1\n- Fix preview release workflow - use base version for build\n- Add preview release support and manifest file\n- Enhance release workflow: update version handling, target .NET 9.0, and improve changelog generation\n- - Replace deprecated GetItemList() with QueryItems() API - Update TaskTriggerInfo to use TaskTriggerInfoType.IntervalTrigger\n- - Update to target Jellyfin 10.11.0 - Migrate from .NET 8.0 to .NET 9.0\n- Merge pull request #15 from Rand0mB0y:patch-1\n- Update README.md to clarify external subtitles note and switched to PowerRename tool\n- manual cleanup of the changelogs\n- Update README.md",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.2.0.2-preview/language-tags_0.2.0.2.zip",
+        "checksum": "45035e8fc3cbc135fcfcde1b45675df4",
+        "timestamp": "2025-10-21T10:34:07Z"
+      }
+    ]
+  }
+]
