@@ -71,12 +71,12 @@ jobs:
 
       - name: Format Changelog to JSON
         id: format_changelog
+        env:
+          CHANGELOG_TEXT: ${{ steps.changelog.outputs.changelog }}
         run: |
-          # Use EOF delimiter to handle special characters safely
-          cat << 'EOF' > changelog.txt
-          ${{ steps.changelog.outputs.changelog }}
-          EOF
-          formatted_changelog=$(cat changelog.txt | sed -E 's/ - [a-f0-9]{7} //' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          # Use environment variable to safely handle special characters
+          echo "$CHANGELOG_TEXT" | sed -E 's/ - [a-f0-9]{7} //' | jq -R -s -c 'split("\n") | map(select(length > 0))' > changelog.json
+          formatted_changelog=$(cat changelog.json)
           echo "FORMATTED_CHANGELOG=$formatted_changelog" >> $GITHUB_ENV
 
       - name: Update `build.yaml`
