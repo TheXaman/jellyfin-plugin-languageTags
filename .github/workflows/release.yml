@@ -39,11 +39,14 @@ jobs:
       - name: Get version from VERSION file
         id: get_version
         run: |
-          VERSION=$(cat VERSION)
+          BASE_VERSION=$(cat VERSION)
+          echo "BASE_VERSION=${BASE_VERSION}" >> $GITHUB_ENV
           if [[ "${{ env.IS_PREVIEW }}" == "true" ]]; then
-            echo "VERSION=${VERSION}-preview" >> $GITHUB_ENV
+            echo "VERSION=${BASE_VERSION}-preview" >> $GITHUB_ENV
+            echo "TAG_VERSION=${BASE_VERSION}-preview" >> $GITHUB_ENV
           else
-            echo "VERSION=${VERSION}" >> $GITHUB_ENV
+            echo "VERSION=${BASE_VERSION}" >> $GITHUB_ENV
+            echo "TAG_VERSION=${BASE_VERSION}" >> $GITHUB_ENV
           fi
 
       - name: Get last release tag
@@ -76,7 +79,7 @@ jobs:
       - name: Update `build.yaml`
         run: |
           yq eval '
-            .version = strenv(VERSION) |
+            .version = strenv(BASE_VERSION) |
             .targetAbi = "10.11.0.0" |
             .changelog = strenv(FORMATTED_CHANGELOG)
           ' build.yaml > build.tmp.yaml && mv build.tmp.yaml build.yaml
@@ -113,9 +116,9 @@ jobs:
       - name: Update manifest file
         run: |
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v$VERSION/language-tags_$VERSION.zip"
+          sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v$TAG_VERSION/language-tags_$TAG_VERSION.zip"
           formatted_changelog=$(echo "$FORMATTED_CHANGELOG" | jq -r '.[]' | sed 's/^/- /')
-          jq --arg strippedversion "$VERSION" \
+          jq --arg strippedversion "$TAG_VERSION" \
             --arg changelog "$formatted_changelog" \
             --arg checksum "$CHECKSUM" \
             --arg timestamp "$timestamp" \
@@ -136,7 +139,7 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add build.yaml manifest.json
-          git commit -m "Update build.yaml and manifest.json for release version $VERSION"
+          git commit -m "Update build.yaml and manifest.json for release version $TAG_VERSION"
           git push origin HEAD:main
 
       - name: Commit Preview Files
@@ -145,7 +148,7 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add build.yaml manifest-preview.json
-          git commit -m "Update build.yaml and manifest-preview.json for preview version $VERSION" || echo "No changes to commit"
+          git commit -m "Update build.yaml and manifest-preview.json for preview version $TAG_VERSION" || echo "No changes to commit"
           git push origin HEAD:${{ github.ref_name }} || echo "Nothing to push"
 
       - name: Generate Final Changelog (including update commit)
@@ -158,19 +161,19 @@ jobs:
 
       - name: Create Tag
         env:
-          VERSION: ${{ env.VERSION }}
+          TAG_VERSION: ${{ env.TAG_VERSION }}
         run: |
-          echo "Creating tag v${VERSION}"
-          git tag -a "v${VERSION}" -m "Release version v${VERSION}"
-          git push origin "v${VERSION}"
+          echo "Creating tag v${TAG_VERSION}"
+          git tag -a "v${TAG_VERSION}" -m "Release version v${TAG_VERSION}"
+          git push origin "v${TAG_VERSION}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         env:
-          VERSION: ${{ env.VERSION }}
+          TAG_VERSION: ${{ env.TAG_VERSION }}
         with:
-          tag_name: "v${{ env.VERSION }}"
-          name: "${{ env.IS_PREVIEW == 'true' && 'Preview Release' || 'Release' }} v${{ env.VERSION }}"
+          tag_name: "v${{ env.TAG_VERSION }}"
+          name: "${{ env.IS_PREVIEW == 'true' && 'Preview Release' || 'Release' }} v${{ env.TAG_VERSION }}"
           body: ${{ steps.final_changelog.outputs.changelog }}
           prerelease: ${{ env.IS_PREVIEW == 'true' }}
           files: |
