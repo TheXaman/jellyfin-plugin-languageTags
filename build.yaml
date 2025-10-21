@@ -1,9 +1,9 @@
 ---
 name: "Language Tags"
 guid: "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb"
-version: "0.1.8.0"
-targetAbi: "10.10.0.0"
-framework: "net8.0"
+version: "0.2.0.1"
+targetAbi: "10.11.0.0"
+framework: "net9.0"
 overview: "This plugin automatically adds language tags to the media."
 description: |
   "This plugin automatically scans the libraries and adds language tags to the media items.\n The languages are extracted from the audio tracks. Media types covered are movies,\n tv shows / series and collections."
@@ -12,4 +12,4 @@ owner: "TheXaman"
 imageUrl: "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png"
 artifacts:
   - "Jellyfin.Plugin.LanguageTags.dll"
-changelog: "[\"Bump version to 0.1.8.0\",\"Make sure to only add 3 letter language tags, even if the extracted tags for a subtitle file are 2 letter codes\",\"Make sure external subtitles are scanned daily if subtitle extraction is enabled, see #13\",\"Fixes language tag refresh for external subtitles due to invalid stripping of nonexistent prefixes, see #13\",\"Make sure all tags for external subtitles are lower case. Fixes #12\",\"Update build.yaml and manifest.json for release version 0.1.7.0\",\"Bump version to 0.1.7.0\",\"Update .gitignore to include publish directory\",\"Add LanguageData and LanguageInfo classes for ISO language code management\",\"Add functionality to remove all language tags and configure undefined language tag handling Fixes #9\",\"Fix for missing tags on content when missing individual episodes or seasons, closes #10\",\"Refactor library item retrieval methods to use OfType<T>() for improved type safety\",\"Update manifest.json to include image fix\",\"Update manifest.json\",\"added a logo to the readme and inside the jellyfin catalog and plugin page\",\"Update README.md to include new subtitle-based tagging\"]"
+changelog: "[\"Update build.yaml to target .NET 9.0 framework\",\"Bump version to 0.2.0.1\"]"

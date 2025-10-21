@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.2.0.1",
+        "changelog": "- Update build.yaml to target .NET 9.0 framework\n- Bump version to 0.2.0.1",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.2.0.1/language-tags_0.2.0.1.zip",
+        "checksum": "90879c3a56eed75f7482a000c220b12e",
+        "timestamp": "2025-10-21T10:46:36Z"
+      },
+      {
         "version": "0.1.8.0",
         "changelog": "- Bump version to 0.1.8.0\n- Make sure to only add 3 letter language tags, even if the extracted tags for a subtitle file are 2 letter codes\n- Make sure external subtitles are scanned daily if subtitle extraction is enabled, see #13\n- Fixes language tag refresh for external subtitles due to invalid stripping of nonexistent prefixes, see #13\n- Make sure all tags for external subtitles are lower case. Fixes #12",
         "targetAbi": "10.10.0.0",
