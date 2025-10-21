@@ -808,7 +808,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
         if (!disableUndTags)
         {
             await Task.Run(() => AddAudioLanguageTags(item, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-            _logger.LogWarning("No audio language information found for {ItemName}, added language_und(efined)", item.Name);
+            var prefix = GetAudioLanguageTagPrefix();
+            _logger.LogWarning("No audio language information found for {ItemName}, added {Prefix}Undetermined", item.Name, prefix);
         }
         else
         {
@@ -876,6 +877,27 @@ public class LanguageTagsManager : IHostedService, IDisposable
             .Where(tag => tag.Length > prefix.Length)
             .Select(tag => tag.Substring(prefix.Length))
             .ToList();
+    }
+
+    private List<string> ConvertIsoToLanguageNames(List<string> isoCodes)
+    {
+        var languageNames = new List<string>();
+
+        foreach (var isoCode in isoCodes)
+        {
+            if (LanguageData.TryGetLanguageInfo(isoCode, out var languageInfo) && languageInfo != null && !string.IsNullOrWhiteSpace(languageInfo.Name))
+            {
+                languageNames.Add(languageInfo.Name);
+            }
+            else
+            {
+                // Fallback to ISO code if name not found
+                _logger.LogWarning("Could not find language name for ISO code '{IsoCode}', using code as fallback", isoCode);
+                languageNames.Add(isoCode);
+            }
+        }
+
+        return languageNames;
     }
 
     private List<Movie> GetMoviesFromLibrary()
@@ -1146,16 +1168,22 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private List<string> AddAudioLanguageTags(BaseItem item, List<string> languages)
     {
-        // Filter out languages based on the whitelist
+        // Filter out languages based on the whitelist (ISO codes)
         languages = FilterOutLanguages(item, languages);
 
+        // Convert ISO codes to language names
+        var languageNames = ConvertIsoToLanguageNames(languages);
+
+        // Remove duplicates (in case multiple ISO codes map to same name)
+        languageNames = languageNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
         var prefix = GetAudioLanguageTagPrefix();
-        foreach (var language in languages)
+        foreach (var languageName in languageNames)
         {
-            string tag = $"{prefix}{language}";
+            string tag = $"{prefix}{languageName}";
 
             // Avoid duplicates
-            if (!item.Tags.Contains(tag))
+            if (!item.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
             {
                 item.AddTag(tag);
             }
@@ -1170,16 +1198,22 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private List<string> AddSubtitleLanguageTags(BaseItem item, List<string> languages)
     {
-        // Filter out languages based on the whitelist
+        // Filter out languages based on the whitelist (ISO codes)
         languages = FilterOutLanguages(item, languages);
 
+        // Convert ISO codes to language names
+        var languageNames = ConvertIsoToLanguageNames(languages);
+
+        // Remove duplicates (in case multiple ISO codes map to same name)
+        languageNames = languageNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
         var prefix = GetSubtitleLanguageTagPrefix();
-        foreach (var language in languages)
+        foreach (var languageName in languageNames)
         {
-            string tag = $"{prefix}{language}";
+            string tag = $"{prefix}{languageName}";
 
             // Avoid duplicates
-            if (!item.Tags.Contains(tag))
+            if (!item.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
             {
                 item.AddTag(tag);
             }
