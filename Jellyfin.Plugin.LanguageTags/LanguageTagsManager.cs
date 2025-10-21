@@ -23,7 +23,6 @@ public class LanguageTagsManager : IHostedService, IDisposable
 {
     private readonly ILibraryManager _libraryManager;
     private readonly ICollectionManager _collectionManager;
-    private readonly HashSet<string> _queuedTmdbCollectionIds;
     private readonly ILogger<LanguageTagsManager> _logger;
     private static readonly char[] Separator = new[] { ',' };
 
@@ -38,7 +37,6 @@ public class LanguageTagsManager : IHostedService, IDisposable
         _libraryManager = libraryManager;
         _collectionManager = collectionManager;
         _logger = logger;
-        _queuedTmdbCollectionIds = new HashSet<string>();
     }
 
     /// <summary>
@@ -349,7 +347,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         if (!fullScan)
                         {
                             _logger.LogInformation("Subtitle tags exist for {VideoName}", video.Name);
-                            var episodeLanguagesTmp = GetSubtitleLanguageTags(video).Select(lang => lang.Substring(18)).ToList(); // Strip "subtitle_language_" prefix
+                            var episodeLanguagesTmp = StripTagPrefix(GetSubtitleLanguageTags(video), "subtitle_language_");
                             seasonSubtitleLanguages.AddRange(episodeLanguagesTmp);
                         }
                         else
@@ -364,7 +362,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         if (!fullScan)
                         {
                             _logger.LogInformation("Audio tags exist, skipping {VideoName}", video.Name);
-                            var episodeLanguagesTmp = GetAudioLanguageTags(video).Select(lang => lang.Substring(9)).ToList(); // Strip "language_" prefix
+                            var episodeLanguagesTmp = StripTagPrefix(GetAudioLanguageTags(video), "language_");
                             seasonAudioLanguages.AddRange(episodeLanguagesTmp);
                             continue;
                         }
@@ -393,23 +391,10 @@ public class LanguageTagsManager : IHostedService, IDisposable
             RemoveSubtitleLanguageTags(season);
 
             // Add audio language tags to the season
+            seasonAudioLanguages = await AddAudioLanguageTagsOrUndefined(season, seasonAudioLanguages, cancellationToken).ConfigureAwait(false);
             if (seasonAudioLanguages.Count > 0)
             {
-                seasonAudioLanguages = await Task.Run(() => AddAudioLanguageTags(season, seasonAudioLanguages), cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Added audio tags for SEASON {SeasonName} of {SeriesName}: {Languages}", season.Name, series.Name, string.Join(", ", seasonAudioLanguages));
-            }
-            else
-            {
-                var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
-                if (!disableUndTags)
-                {
-                    await Task.Run(() => AddAudioLanguageTags(season, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogWarning("No audio language information found for SEASON {SeasonName} of {SeriesName}, added language_und(efined)", season.Name, series.Name);
-                }
-                else
-                {
-                    _logger.LogWarning("No audio language information found for SEASON {SeasonName} of {SeriesName}, skipped adding undefined tags", season.Name, series.Name);
-                }
             }
 
             // Add subtitle language tags to the season
@@ -433,23 +418,10 @@ public class LanguageTagsManager : IHostedService, IDisposable
         seriesSubtitleLanguages = seriesSubtitleLanguages.Distinct().ToList();
 
         // Add audio language tags to the series
+        seriesAudioLanguages = await AddAudioLanguageTagsOrUndefined(series, seriesAudioLanguages, cancellationToken).ConfigureAwait(false);
         if (seriesAudioLanguages.Count > 0)
         {
-            seriesAudioLanguages = await Task.Run(() => AddAudioLanguageTags(series, seriesAudioLanguages), cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Added audio tags for SERIES {SeriesName}: {Languages}", series.Name, string.Join(", ", seriesAudioLanguages));
-        }
-        else
-        {
-            var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
-            if (!disableUndTags)
-            {
-                await Task.Run(() => AddAudioLanguageTags(series, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("No audio language information found for SERIES {SeriesName}, added language_und(efined)", series.Name);
-            }
-            else
-            {
-                _logger.LogWarning("No audio language information found for SERIES {SeriesName}, skipped adding undefined tags", series.Name);
-            }
         }
 
         // Add subtitle language tags to the series
@@ -539,27 +511,14 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }
 
             // Strip "language_" prefix
-            collectionAudioLanguages = collectionAudioLanguages.Select(lang => lang.Substring(9)).ToList();
+            collectionAudioLanguages = StripTagPrefix(collectionAudioLanguages, "language_");
 
             // Add language tags to the box set
             collectionAudioLanguages = collectionAudioLanguages.Distinct().ToList();
+            collectionAudioLanguages = await AddAudioLanguageTagsOrUndefined(boxSet, collectionAudioLanguages, cancellationToken).ConfigureAwait(false);
             if (collectionAudioLanguages.Count > 0)
             {
-                collectionAudioLanguages = await Task.Run(() => AddAudioLanguageTags(boxSet, collectionAudioLanguages), cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Added audio tags for {BoxSetName}: {Languages}", boxSet.Name, string.Join(", ", collectionAudioLanguages));
-            }
-            else
-            {
-                var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
-                if (!disableUndTags)
-                {
-                    await Task.Run(() => AddAudioLanguageTags(boxSet, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogWarning("No audio language information found for {BoxSetName}, added language_und(efined)", boxSet.Name);
-                }
-                else
-                {
-                    _logger.LogWarning("No audio language information found for {BoxSetName}, skipped adding undefined tags", boxSet.Name);
-                }
             }
 
             if (!subtitleTags) // skip subtitle tags
@@ -568,7 +527,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }
 
             // Strip "subtitle_language_" prefix
-            collectionSubtitleLanguages = collectionSubtitleLanguages.Select(lang => lang.Substring(18)).ToList();
+            collectionSubtitleLanguages = StripTagPrefix(collectionSubtitleLanguages, "subtitle_language_");
 
             // Add subtitle language tags to the box set
             collectionSubtitleLanguages = collectionSubtitleLanguages.Distinct().ToList();
@@ -838,6 +797,32 @@ public class LanguageTagsManager : IHostedService, IDisposable
     // Helper methods
     // ******************************************************************
 
+    private async Task<List<string>> AddAudioLanguageTagsOrUndefined(BaseItem item, List<string> audioLanguages, CancellationToken cancellationToken)
+    {
+        if (audioLanguages.Count > 0)
+        {
+            return await Task.Run(() => AddAudioLanguageTags(item, audioLanguages), cancellationToken).ConfigureAwait(false);
+        }
+
+        var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
+        if (!disableUndTags)
+        {
+            await Task.Run(() => AddAudioLanguageTags(item, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
+            _logger.LogWarning("No audio language information found for {ItemName}, added language_und(efined)", item.Name);
+        }
+        else
+        {
+            _logger.LogWarning("No audio language information found for {ItemName}, skipped adding undefined tags", item.Name);
+        }
+
+        return audioLanguages;
+    }
+
+    private static List<string> StripTagPrefix(IEnumerable<string> tags, string prefix)
+    {
+        return tags.Select(tag => tag.Substring(prefix.Length)).ToList();
+    }
+
     private List<Movie> GetMoviesFromLibrary()
     {
         return _libraryManager.QueryItems(new InternalItemsQuery
@@ -964,16 +949,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }
             else
             {
-                var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
-                if (!disableUndTags)
-                {
-                    await Task.Run(() => AddAudioLanguageTags(video, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogWarning("No audio language information found for VIDEO {VideoName}, added language_und(efined)", video.Name);
-                }
-                else
-                {
-                    _logger.LogWarning("No audio language information found for VIDEO {VideoName}, skipped adding undefined tags", video.Name);
-                }
+                audioLanguages = await AddAudioLanguageTagsOrUndefined(video, audioLanguages, cancellationToken).ConfigureAwait(false);
             }
 
             if (subtitleTags && subtitleLanguages.Count > 0)
