@@ -5,6 +5,12 @@ on:
     paths:
       - VERSION
   workflow_dispatch:
+    inputs:
+      preview:
+        description: 'Create preview release'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -19,9 +25,26 @@ jobs:
         with:
           fetch-depth: 0 # Ensures full history for changelog generation
 
+      - name: Determine release type
+        id: release_type
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.preview }}" == "true" ]] || [[ "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "IS_PREVIEW=true" >> $GITHUB_ENV
+            echo "MANIFEST_FILE=manifest-preview.json" >> $GITHUB_ENV
+          else
+            echo "IS_PREVIEW=false" >> $GITHUB_ENV
+            echo "MANIFEST_FILE=manifest.json" >> $GITHUB_ENV
+          fi
+
       - name: Get version from VERSION file
         id: get_version
-        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+        run: |
+          VERSION=$(cat VERSION)
+          if [[ "${{ env.IS_PREVIEW }}" == "true" ]]; then
+            echo "VERSION=${VERSION}-preview" >> $GITHUB_ENV
+          else
+            echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          fi
 
       - name: Get last release tag
         id: get_last_release
@@ -80,7 +103,14 @@ jobs:
           echo "$hash $(basename ${{ steps.jprm.outputs.artifact }})" >> checksums.md5
           echo "CHECKSUM=$hash" >> $GITHUB_ENV
 
-      - name: Update `manifest.json`
+      - name: Create preview manifest if needed
+        if: env.IS_PREVIEW == 'true'
+        run: |
+          if [ ! -f manifest-preview.json ]; then
+            cp manifest.json manifest-preview.json
+          fi
+
+      - name: Update manifest file
         run: |
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           sourceUrl="https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v$VERSION/language-tags_$VERSION.zip"
@@ -98,15 +128,25 @@ jobs:
               checksum: $checksum,
               timestamp: $timestamp
             }] + .' \
-            manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
+            ${{ env.MANIFEST_FILE }} > manifest.tmp.json && mv manifest.tmp.json ${{ env.MANIFEST_FILE }}
 
       - name: Commit Updated Files
+        if: env.IS_PREVIEW == 'false'
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add build.yaml manifest.json
           git commit -m "Update build.yaml and manifest.json for release version $VERSION"
           git push origin HEAD:main
+
+      - name: Commit Preview Files
+        if: env.IS_PREVIEW == 'true'
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add build.yaml manifest-preview.json
+          git commit -m "Update build.yaml and manifest-preview.json for preview version $VERSION" || echo "No changes to commit"
+          git push origin HEAD:${{ github.ref_name }} || echo "Nothing to push"
 
       - name: Generate Final Changelog (including update commit)
         uses: Bullrich/generate-release-changelog@master
@@ -130,7 +170,9 @@ jobs:
           VERSION: ${{ env.VERSION }}
         with:
           tag_name: "v${{ env.VERSION }}"
+          name: "${{ env.IS_PREVIEW == 'true' && 'Preview Release' || 'Release' }} v${{ env.VERSION }}"
           body: ${{ steps.final_changelog.outputs.changelog }}
+          prerelease: ${{ env.IS_PREVIEW == 'true' }}
           files: |
             checksums.md5
             ${{ steps.jprm.outputs.artifact }}
