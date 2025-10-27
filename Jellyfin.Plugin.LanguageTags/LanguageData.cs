@@ -149,7 +149,7 @@ public static class LanguageData
         AddLanguage(new LanguageInfo { Iso6392 = "dzo", Iso6391 = "dz", Name = "Dzongkha" });
         AddLanguage(new LanguageInfo { Iso6392 = "efi", Name = "Efik" });
         AddLanguage(new LanguageInfo { Iso6392 = "eka", Name = "Ekajuk" });
-        AddLanguage(new LanguageInfo { Iso6392 = "ell", Iso6392B = "gre", Iso6391 = "el", Name = "Greek, Modern" });
+        AddLanguage(new LanguageInfo { Iso6392 = "ell", Iso6392B = "gre", Iso6391 = "el", Name = "Greek Modern" });
         AddLanguage(new LanguageInfo { Iso6392 = "eng", Iso6391 = "en", Name = "English" });
         AddLanguage(new LanguageInfo { Iso6392 = "est", Iso6391 = "et", Name = "Estonian" });
         AddLanguage(new LanguageInfo { Iso6392 = "ewe", Iso6391 = "ee", Name = "Ewe" });
@@ -290,8 +290,8 @@ public static class LanguageData
         AddLanguage(new LanguageInfo { Iso6392 = "nap", Name = "Neapolitan" });
         AddLanguage(new LanguageInfo { Iso6392 = "nau", Iso6391 = "na", Name = "Nauru" });
         AddLanguage(new LanguageInfo { Iso6392 = "nav", Iso6391 = "nv", Name = "Navajo" });
-        AddLanguage(new LanguageInfo { Iso6392 = "nbl", Iso6391 = "nr", Name = "Ndebele, South" });
-        AddLanguage(new LanguageInfo { Iso6392 = "nde", Iso6391 = "nd", Name = "Ndebele, North" });
+        AddLanguage(new LanguageInfo { Iso6392 = "nbl", Iso6391 = "nr", Name = "Ndebele South" });
+        AddLanguage(new LanguageInfo { Iso6392 = "nde", Iso6391 = "nd", Name = "Ndebele North" });
         AddLanguage(new LanguageInfo { Iso6392 = "ndo", Iso6391 = "ng", Name = "Ndonga" });
         AddLanguage(new LanguageInfo { Iso6392 = "nds", Name = "Low German" });
         AddLanguage(new LanguageInfo { Iso6392 = "nep", Iso6391 = "ne", Name = "Nepali" });
@@ -299,7 +299,7 @@ public static class LanguageData
         AddLanguage(new LanguageInfo { Iso6392 = "nia", Name = "Nias" });
         AddLanguage(new LanguageInfo { Iso6392 = "niu", Name = "Niuean" });
         AddLanguage(new LanguageInfo { Iso6392 = "nno", Iso6391 = "nn", Name = "Norwegian Nynorsk" });
-        AddLanguage(new LanguageInfo { Iso6392 = "nob", Iso6391 = "nb", Name = "Bokmål, Norwegian" });
+        AddLanguage(new LanguageInfo { Iso6392 = "nob", Iso6391 = "nb", Name = "Bokmål Norwegian" });
         AddLanguage(new LanguageInfo { Iso6392 = "nog", Name = "Nogai" });
         AddLanguage(new LanguageInfo { Iso6392 = "nor", Iso6391 = "no", Name = "Norwegian" });
         AddLanguage(new LanguageInfo { Iso6392 = "nqo", Name = "N'Ko" });
@@ -357,7 +357,7 @@ public static class LanguageData
         AddLanguage(new LanguageInfo { Iso6392 = "snd", Iso6391 = "sd", Name = "Sindhi" });
         AddLanguage(new LanguageInfo { Iso6392 = "snk", Name = "Soninke" });
         AddLanguage(new LanguageInfo { Iso6392 = "som", Iso6391 = "so", Name = "Somali" });
-        AddLanguage(new LanguageInfo { Iso6392 = "sot", Iso6391 = "st", Name = "Sotho, Southern" });
+        AddLanguage(new LanguageInfo { Iso6392 = "sot", Iso6391 = "st", Name = "Sotho Southern" });
         AddLanguage(new LanguageInfo { Iso6392 = "spa", Iso6391 = "es", Name = "Spanish" });
         AddLanguage(new LanguageInfo { Iso6392 = "srd", Iso6391 = "sc", Name = "Sardinian" });
         AddLanguage(new LanguageInfo { Iso6392 = "srn", Name = "Sranan Tongo" });
