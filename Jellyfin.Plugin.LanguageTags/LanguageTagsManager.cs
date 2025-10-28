@@ -197,6 +197,145 @@ public class LanguageTagsManager : IHostedService, IDisposable
     }
 
     /// <summary>
+    /// Processes non-media items and applies tags.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the processing.</returns>
+    public async Task ProcessNonMediaItems()
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null || !config.EnableNonMediaTagging)
+        {
+            _logger.LogDebug("Non-media tagging is disabled");
+            return;
+        }
+
+        var tagName = config.NonMediaTag ?? "item";
+        var itemTypesString = config.NonMediaItemTypes ?? string.Empty;
+        var itemTypes = itemTypesString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .ToList();
+
+        if (itemTypes.Count == 0)
+        {
+            _logger.LogInformation("No non-media item types selected for tagging");
+            return;
+        }
+
+        _logger.LogInformation("************************************");
+        _logger.LogInformation("*  Processing non-media items...   *");
+        _logger.LogInformation("************************************");
+        _logger.LogInformation("Applying tag '{TagName}' to {Count} item types", tagName, itemTypes.Count);
+
+        foreach (var itemType in itemTypes)
+        {
+            try
+            {
+                // Convert string to BaseItemKind
+                if (!Enum.TryParse<BaseItemKind>(itemType, out var kind))
+                {
+                    _logger.LogWarning("Unknown item type: {ItemType}", itemType);
+                    continue;
+                }
+
+                var items = _libraryManager.QueryItems(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { kind },
+                    Recursive = true
+                }).Items;
+
+                _logger.LogInformation("Found {Count} {ItemType} items", items.Count, itemType);
+
+                int taggedCount = 0;
+                foreach (var item in items)
+                {
+                    if (!item.Tags.Contains(tagName, StringComparer.OrdinalIgnoreCase))
+                    {
+                        var tagsList = item.Tags.ToList();
+                        tagsList.Add(tagName);
+                        item.Tags = tagsList.ToArray();
+                        await item.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, CancellationToken.None)
+                            .ConfigureAwait(false);
+                        taggedCount++;
+                    }
+                }
+
+                _logger.LogInformation("Tagged {TaggedCount} of {TotalCount} {ItemType} items", taggedCount, items.Count, itemType);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing non-media items of type {ItemType}", itemType);
+            }
+        }
+
+        _logger.LogInformation("Completed non-media item tagging");
+    }
+
+    /// <summary>
+    /// Removes non-media tags from all items.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the removal process.</returns>
+    public async Task RemoveNonMediaTags()
+    {
+        var config = Plugin.Instance?.Configuration;
+        var tagName = config?.NonMediaTag ?? "item";
+        var itemTypesString = config?.NonMediaItemTypes ?? string.Empty;
+        var itemTypes = itemTypesString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .ToList();
+
+        _logger.LogInformation("Starting removal of non-media tag '{TagName}' from library", tagName);
+
+        if (itemTypes.Count == 0)
+        {
+            _logger.LogWarning("No non-media item types configured for tag removal");
+            return;
+        }
+
+        try
+        {
+            foreach (var itemType in itemTypes)
+            {
+                if (Enum.TryParse<BaseItemKind>(itemType, out var kind))
+                {
+                    var items = _libraryManager.QueryItems(new InternalItemsQuery
+                    {
+                        IncludeItemTypes = new[] { kind },
+                        Recursive = true
+                    }).Items;
+
+                    _logger.LogInformation("Removing tag from {Count} {ItemType} items", items.Count, itemType);
+
+                    int removedCount = 0;
+                    foreach (var item in items)
+                    {
+                        var originalCount = item.Tags.Length;
+                        item.Tags = item.Tags.Where(t =>
+                            !t.Equals(tagName, StringComparison.OrdinalIgnoreCase)).ToArray();
+
+                        if (item.Tags.Length < originalCount)
+                        {
+                            await item.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, CancellationToken.None)
+                                .ConfigureAwait(false);
+                            removedCount++;
+                        }
+                    }
+
+                    _logger.LogInformation("Removed tag from {RemovedCount} {ItemType} items", removedCount, itemType);
+                }
+            }
+
+            _logger.LogInformation("Completed removal of non-media tags");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing non-media tags from library");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Processes the libraries movies.
     /// </summary>
     /// <param name="fullScan">if set to <c>true</c> [full scan].</param>
