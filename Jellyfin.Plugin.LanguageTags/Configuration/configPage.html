@@ -237,7 +237,7 @@
                         if (lang) {
                             var checkbox = document.createElement("label");
                             checkbox.style.cssText = "display: flex; align-items: center; cursor: pointer; padding: 5px;";
-                            checkbox.innerHTML = '<input type="checkbox" class="language-checkbox" data-language="' + lang.name + '" style="margin-right: 8px;"> <span>' + lang.name + '</span>';
+                            checkbox.innerHTML = '<input type="checkbox" class="language-checkbox" data-language="' + lang.name + '" style="margin-right: 8px;"> <span>' + lang.name + ' <span style="color: #888; font-size: 0.9em;">(' + lang.iso.join(', ') + ')</span></span>';
                             commonGrid.appendChild(checkbox);
                         }
                     });
@@ -310,9 +310,12 @@
                     } else {
                         chipsContainer.innerHTML = "";
                         Array.from(selectedLanguages).sort().forEach(function(langName) {
+                            var lang = allLanguages.find(function(l) { return l.name === langName; });
                             var chip = document.createElement("div");
                             chip.style.cssText = "display: inline-flex; align-items: center; background: #2196F3; color: white; padding: 5px 10px; border-radius: 16px; font-size: 0.9em;";
-                            chip.innerHTML = langName + ' <button type="button" style="background: none; border: none; color: white; margin-left: 8px; cursor: pointer; font-size: 1.2em; padding: 0; line-height: 1;">&times;</button>';
+                            
+                            var isoCodesText = lang ? ' (' + lang.iso.join(', ') + ')' : '';
+                            chip.innerHTML = langName + '<span style="opacity: 0.8; margin-left: 4px;">' + isoCodesText + '</span> <button type="button" style="background: none; border: none; color: white; margin-left: 8px; cursor: pointer; font-size: 1.2em; padding: 0; line-height: 1;">&times;</button>';
 
                             chip.querySelector("button").addEventListener("click", function() {
                                 selectedLanguages.delete(langName);
