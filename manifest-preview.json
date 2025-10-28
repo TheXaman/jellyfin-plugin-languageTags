@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.4.1.0",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.1.0\n- fix: changed how movies are retrieved from collections, fixes #21\n- fix: \"Force full refresh for tv shows\" triggering a complete refresh, fixes #17 fix: Change return statements to continue in library processing for null checks\n- Update build.yaml and manifest-preview.json for preview version 0.4.0.0-preview\n- Bump version to 0.4.0.0\n- feat: Add non-media tagging functionality with configuration options\n- Remove commas from language names to avoid tag splitting issue in Parental Control (#23)\n- feat: Enhance language checkbox display with ISO codes and improve selected language chips\n- add silent movies to whitelist, addresses #22",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.1.0-preview/language-tags_0.4.1.0.zip",
+        "checksum": "cf333e2b5bcd647f400ef8dd2a9b71c7",
+        "timestamp": "2025-10-28T19:11:41Z"
+      },
+      {
         "version": "0.4.0.0",
         "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.0.0\n- feat: Add non-media tagging functionality with configuration options\n- Remove commas from language names to avoid tag splitting issue in Parental Control (#23)\n- feat: Enhance language checkbox display with ISO codes and improve selected language chips\n- add silent movies to whitelist, addresses #22\n- Update build.yaml and manifest-preview.json for preview version 0.3.0.0-preview\n- Bump version to 0.3.0.0\n- feat: Use language names in tags and add visual language selector\n- Add customizable prefixes for audio and subtitle language tags with validation\n- Refactor: Simplify audio and subtitle language tag handling by introducing helper methods\n- Refactor: Replace FFmpeg with MediaStreams API for 10-100x performance boost",
         "targetAbi": "10.11.0.0",
