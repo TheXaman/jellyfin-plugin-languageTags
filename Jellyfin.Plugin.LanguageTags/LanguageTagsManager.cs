@@ -618,9 +618,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
             var collectionItems = _libraryManager.QueryItems(new InternalItemsQuery
             {
                 IncludeItemTypes = [BaseItemKind.Movie],
-                Recursive = true,
-                ParentId = boxSet.Id
-            }).Items.Select(m => m as Movie).ToList();
+                Recursive = true
+            }).Items
+                .Where(m => m is Movie && m.GetParent() != null && m.GetParent().Id == boxSet.Id)
+                .Select(m => m as Movie)
+                .ToList();
 
             if (collectionItems.Count == 0)
             {
