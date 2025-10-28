@@ -76,6 +76,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 await ProcessLibraryMovies(fullScan, synchronously, subtitleTags).ConfigureAwait(false);
                 break;
             case "series":
+            case "tvshows":
                 await ProcessLibrarySeries(fullScan, synchronously, subtitleTags).ConfigureAwait(false);
                 break;
             case "collections":
@@ -437,7 +438,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 if (series == null)
                 {
                     _logger.LogWarning("Series is null!");
-                    return;
+                    continue;
                 }
 
                 await ProcessSeries(series, fullScan, subtitleTags, CancellationToken.None).ConfigureAwait(false);
@@ -639,7 +640,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 if (movie == null)
                 {
                     _logger.LogWarning("Movie is null!");
-                    return;
+                    continue;
                 }
 
                 var movieLanguages = GetAudioLanguageTags(movie);
@@ -776,7 +777,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 if (series == null)
                 {
                     _logger.LogWarning("Series is null!");
-                    return;
+                    continue;
                 }
 
                 await ProcessSeriesExternalSubtitles(series, CancellationToken.None).ConfigureAwait(false);
@@ -832,7 +833,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     if (movie == null)
                     {
                         _logger.LogWarning("Movie is null!");
-                        return;
+                        continue;
                     }
 
                     var movieSubtitleLanguages = ExtractSubtitleLanguagesExternal(movie);
