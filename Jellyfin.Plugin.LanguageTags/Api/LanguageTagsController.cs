@@ -71,6 +71,36 @@ public class LanguageTagsController : ControllerBase, IDisposable
         return NoContent();
     }
 
+    /// <summary>
+    /// Applies non-media tags to configured item types.
+    /// </summary>
+    /// <response code="204">Non-media tagging started successfully. </response>
+    /// <returns>A <see cref="NoContentResult"/> indicating success.</returns>
+    [HttpPost("ApplyNonMediaTags")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult> ApplyNonMediaTagsRequest()
+    {
+        _logger.LogInformation("Starting non-media item tagging");
+        await _languageTagsManager.ProcessNonMediaItems().ConfigureAwait(false);
+        _logger.LogInformation("Completed non-media item tagging");
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Removes non-media tags from all configured item types.
+    /// </summary>
+    /// <response code="204">Non-media tags removal started successfully. </response>
+    /// <returns>A <see cref="NoContentResult"/> indicating success.</returns>
+    [HttpPost("RemoveNonMediaTags")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult> RemoveNonMediaTagsRequest()
+    {
+        _logger.LogInformation("Starting removal of non-media tags");
+        await _languageTagsManager.RemoveNonMediaTags().ConfigureAwait(false);
+        _logger.LogInformation("Completed removal of non-media tags");
+        return NoContent();
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {

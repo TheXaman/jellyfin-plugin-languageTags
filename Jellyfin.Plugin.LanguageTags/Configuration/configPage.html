@@ -115,6 +115,82 @@
                             <button is="emby-button" type="button" class="raised block emby-button-cancel" id="remove-all-tags"><span>Remove ALL language tags from Everything</span></button>
                         </div>
                         <hr />
+                        <div class="verticalSection">
+                            <h3>Non-Media Item Tagging (Optional)</h3>
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label>
+                                    <input is="emby-checkbox" type="checkbox" id="enable-non-media-tagging" name="enable-non-media-tagging" />
+                                    <span>Enable non-media item tagging</span>
+                                </label>
+                                <div class="fieldDescription checkboxFieldDescription">
+                                    <p>When enabled, applies a tag to non-media items (music, books, people, etc.) so they appear when using "Allow items with tags" in Parental Control.</p>
+                                    <p><strong>Use Case:</strong> If you use "Allow items with tags" to filter content by language, non-media items (artists, albums, people, etc.) will be hidden. This feature tags those items so they remain visible.</p>
+                                </div>
+                            </div>
+                            
+                            <label for="non-media-tag">Non-Media Tag Name:</label>
+                            <input type="text" id="non-media-tag" name="non-media-tag" placeholder="item" />
+                            <div class="fieldDescription">
+                                <p>The tag name to apply to non-media items. Default is "item". Make sure to add this tag to your "Allow items with tags" list in Parental Control settings.</p>
+                            </div>
+                            
+                            <h4 style="margin-top: 20px;">Select Item Types to Tag:</h4>
+                            <div class="fieldDescription" style="margin-bottom: 10px;">
+                                <p>Choose which types of content should receive the non-media tag. Only selected types will be tagged.</p>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="Audio" style="margin-right: 8px;" />
+                                    <span>Music Tracks</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="MusicAlbum" style="margin-right: 8px;" />
+                                    <span>Music Albums</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="MusicArtist" style="margin-right: 8px;" />
+                                    <span>Artists</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="Person" style="margin-right: 8px;" />
+                                    <span>People (Cast/Crew)</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="Playlist" style="margin-right: 8px;" />
+                                    <span>Playlists</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="Book" style="margin-right: 8px;" />
+                                    <span>Books</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="AudioBook" style="margin-right: 8px;" />
+                                    <span>Audiobooks</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="Genre" style="margin-right: 8px;" />
+                                    <span>Genres</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="Studio" style="margin-right: 8px;" />
+                                    <span>Studios</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="PhotoAlbum" style="margin-right: 8px;" />
+                                    <span>Photo Albums</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" class="non-media-type" value="Photo" style="margin-right: 8px;" />
+                                    <span>Photos</span>
+                                </label>
+                            </div>
+
+                            <div style="margin-top: 15px;">
+                                <button is="emby-button" type="button" class="raised block" id="apply-non-media-tags"><span>Apply non-media tags now</span></button>
+                                <button is="emby-button" type="button" class="raised block emby-button-cancel" id="remove-non-media-tags"><span>Remove non-media tags</span></button>
+                            </div>
+                        </div>
+                        <hr />
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <h3>Synchronous Refresh Option</h3>
                             <label>
@@ -392,6 +468,14 @@
                         // Load selected languages from config
                         loadSelectedLanguages(config.WhitelistLanguageTags || "");
 
+                        // Load non-media tagging configuration
+                        document.getElementById("enable-non-media-tagging").checked = config.EnableNonMediaTagging || false;
+                        document.getElementById("non-media-tag").value = config.NonMediaTag || "item";
+                        var nonMediaTypes = (config.NonMediaItemTypes || "").split(',').map(function(t) { return t.trim(); }).filter(function(t) { return t; });
+                        document.querySelectorAll('.non-media-type').forEach(function(cb) {
+                            cb.checked = nonMediaTypes.includes(cb.value);
+                        });
+
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -426,6 +510,12 @@
                         config.DisableUndefinedLanguageTags = document.getElementById("disable-undefined-tags").checked;
                         config.AudioLanguageTagPrefix = audioPrefix;
                         config.SubtitleLanguageTagPrefix = subtitlePrefix;
+
+                        // Save non-media tagging configuration
+                        config.EnableNonMediaTagging = document.getElementById("enable-non-media-tagging").checked;
+                        config.NonMediaTag = document.getElementById("non-media-tag").value.trim() || "item";
+                        var selectedNonMediaTypes = Array.from(document.querySelectorAll('.non-media-type:checked')).map(function(cb) { return cb.value; });
+                        config.NonMediaItemTypes = selectedNonMediaTypes.join(',');
 
                         ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                     });
@@ -527,6 +617,40 @@
                     ApiClient.fetch(request)
                         .then(function () {
                             Dashboard.alert("Removal of all language tags queued");
+                        })
+                        .catch(function () {
+                            Dashboard.alert({
+                                message: "Unexpected error occurred!",
+                            });
+                        });
+                });
+
+                $("#apply-non-media-tags").on("click", function () {
+                    var request = {
+                        url: ApiClient.getUrl("LanguageTags/ApplyNonMediaTags"),
+                        type: "POST",
+                    };
+
+                    ApiClient.fetch(request)
+                        .then(function () {
+                            Dashboard.alert("Non-media item tagging started. This may take a while depending on your library size.");
+                        })
+                        .catch(function () {
+                            Dashboard.alert({
+                                message: "Unexpected error occurred!",
+                            });
+                        });
+                });
+
+                $("#remove-non-media-tags").on("click", function () {
+                    var request = {
+                        url: ApiClient.getUrl("LanguageTags/RemoveNonMediaTags"),
+                        type: "POST",
+                    };
+
+                    ApiClient.fetch(request)
+                        .then(function () {
+                            Dashboard.alert("Removal of non-media tags started");
                         })
                         .catch(function () {
                             Dashboard.alert({

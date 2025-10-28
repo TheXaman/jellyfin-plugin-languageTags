@@ -19,6 +19,9 @@ public class PluginConfiguration : BasePluginConfiguration
         DisableUndefinedLanguageTags = false;
         AudioLanguageTagPrefix = "language_";
         SubtitleLanguageTagPrefix = "subtitle_language_";
+        EnableNonMediaTagging = false;
+        NonMediaTag = "item";
+        NonMediaItemTypes = string.Empty;
     }
 
     /// <summary>
@@ -55,4 +58,19 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets the prefix for subtitle language tags.
     /// </summary>
     public string SubtitleLanguageTagPrefix { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to enable non-media tagging.
+    /// </summary>
+    public bool EnableNonMediaTagging { get; set; }
+
+    /// <summary>
+    /// Gets or sets the tag to apply to non-media items.
+    /// </summary>
+    public string NonMediaTag { get; set; }
+
+    /// <summary>
+    /// Gets or sets which non-media item types to tag (comma-separated).
+    /// </summary>
+    public string NonMediaItemTypes { get; set; }
 }
