@@ -430,7 +430,7 @@ public static class LanguageData
         // Special codes
         AddLanguage(new LanguageInfo { Iso6392 = "und", Name = "Undetermined" });
         AddLanguage(new LanguageInfo { Iso6392 = "mul", Name = "Multiple languages" });
-        AddLanguage(new LanguageInfo { Iso6392 = "zxx", Name = "No linguistic content" });
+        AddLanguage(new LanguageInfo { Iso6392 = "zxx", Name = "Silent" });
         AddLanguage(new LanguageInfo { Iso6392 = "mis", Name = "Uncoded languages" });
 
         return languages;
