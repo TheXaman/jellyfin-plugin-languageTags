@@ -656,7 +656,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
             // Add language tags to the box set
             collectionAudioLanguages = collectionAudioLanguages.Distinct().ToList();
-            collectionAudioLanguages = await AddAudioLanguageTagsOrUndefined(boxSet, collectionAudioLanguages, cancellationToken).ConfigureAwait(false);
+            collectionAudioLanguages = AddAudioLanguageTagsByName(boxSet, collectionAudioLanguages);
             if (collectionAudioLanguages.Count > 0)
             {
                 _logger.LogInformation("Added audio tags for {BoxSetName}: {Languages}", boxSet.Name, string.Join(", ", collectionAudioLanguages));
@@ -1317,6 +1317,30 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
         // Remove duplicates (in case multiple ISO codes map to same name)
         languageNames = languageNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var prefix = GetAudioLanguageTagPrefix();
+        foreach (var languageName in languageNames)
+        {
+            string tag = $"{prefix}{languageName}";
+
+            // Avoid duplicates
+            if (!item.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            {
+                item.AddTag(tag);
+            }
+        }
+
+        // Save the changes
+        var parent = item.GetParent();
+        _libraryManager.UpdateItemAsync(item: item, parent: parent, updateReason: ItemUpdateType.MetadataEdit, cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
+
+        return languages;
+    }
+
+    private List<string> AddAudioLanguageTagsByName(BaseItem item, List<string> languages)
+    {
+        // Remove duplicates
+        var languageNames = languages.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         var prefix = GetAudioLanguageTagPrefix();
         foreach (var languageName in languageNames)
