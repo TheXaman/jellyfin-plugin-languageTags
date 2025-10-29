@@ -99,6 +99,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 // Process external subtitles
                 await ProcessLibraryExternalSubtitles(synchronously, subtitleTags).ConfigureAwait(false);
 
+                // Process non-media items
+                await ProcessNonMediaItems().ConfigureAwait(false);
+
                 break;
         }
     }
