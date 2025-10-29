@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.4.3.0",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.3.0\n- feat: implement audio language tag addition by name in LanguageTagsManager, addresses  #21\n- Update build.yaml and manifest-preview.json for preview version 0.4.2.0-preview\n- Bump version to 0.4.2.0\n- refactor: optimize collection item retrieval in LanguageTagsManager, addresses #21\n- feat: add processing for non-media items in library scan, addresses #20\n- feat: add checkboxes for Music Genre and Live TV channels in configuration, addresses #20\n- Remove version 0.4.0.0 from manifest-preview.json",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.3.0-preview/language-tags_0.4.3.0.zip",
+        "checksum": "d04b2e7839953d77ae61ed0f4220451d",
+        "timestamp": "2025-10-29T18:48:49Z"
+      },
+      {
         "version": "0.4.2.0",
         "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.2.0\n- refactor: optimize collection item retrieval in LanguageTagsManager, addresses #21\n- feat: add processing for non-media items in library scan, addresses #20\n- feat: add checkboxes for Music Genre and Live TV channels in configuration, addresses #20\n- Remove version 0.4.0.0 from manifest-preview.json\n- Update build.yaml and manifest-preview.json for preview version 0.4.1.0-preview\n- Bump version to 0.4.1.0\n- fix: changed how movies are retrieved from collections, fixes #21\n- fix: \"Force full refresh for tv shows\" triggering a complete refresh, fixes #17 fix: Change return statements to continue in library processing for null checks",
         "targetAbi": "10.11.0.0",
