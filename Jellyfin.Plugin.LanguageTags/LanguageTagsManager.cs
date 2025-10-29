@@ -618,13 +618,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
     {
         if (collection is BoxSet boxSet)
         {
-            var collectionItems = _libraryManager.QueryItems(new InternalItemsQuery
-            {
-                IncludeItemTypes = [BaseItemKind.Movie],
-                Recursive = true
-            }).Items
-                .Where(m => m is Movie && m.GetParent() != null && m.GetParent().Id == boxSet.Id)
-                .Select(m => m as Movie)
+            // Alternative approach using GetLinkedChildren if the above doesn't work:
+            var collectionItems = boxSet.GetLinkedChildren()
+                .OfType<Movie>()
                 .ToList();
 
             if (collectionItems.Count == 0)
