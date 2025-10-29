@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.4.3.1",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.3.1\n- feat: fixed missing subtitle language tags for collections,  addresses #21\n- Update build.yaml and manifest-preview.json for preview version 0.4.3.0-preview\n- Bump version to 0.4.3.0\n- feat: implement audio language tag addition by name in LanguageTagsManager, addresses  #21",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.3.1-preview/language-tags_0.4.3.1.zip",
+        "checksum": "00eb7dc558c7065ffa7de4200c2e1d9e",
+        "timestamp": "2025-10-29T20:02:34Z"
+      },
+      {
         "version": "0.4.3.0",
         "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.3.0\n- feat: implement audio language tag addition by name in LanguageTagsManager, addresses  #21\n- Update build.yaml and manifest-preview.json for preview version 0.4.2.0-preview\n- Bump version to 0.4.2.0\n- refactor: optimize collection item retrieval in LanguageTagsManager, addresses #21\n- feat: add processing for non-media items in library scan, addresses #20\n- feat: add checkboxes for Music Genre and Live TV channels in configuration, addresses #20\n- Remove version 0.4.0.0 from manifest-preview.json",
         "targetAbi": "10.11.0.0",
