@@ -618,13 +618,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
     {
         if (collection is BoxSet boxSet)
         {
-            var collectionItems = _libraryManager.QueryItems(new InternalItemsQuery
-            {
-                IncludeItemTypes = [BaseItemKind.Movie],
-                Recursive = true
-            }).Items
-                .Where(m => m is Movie && m.GetParent() != null && m.GetParent().Id == boxSet.Id)
-                .Select(m => m as Movie)
+            // Alternative approach using GetLinkedChildren if the above doesn't work:
+            var collectionItems = boxSet.GetLinkedChildren()
+                .OfType<Movie>()
                 .ToList();
 
             if (collectionItems.Count == 0)
@@ -660,7 +656,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
             // Add language tags to the box set
             collectionAudioLanguages = collectionAudioLanguages.Distinct().ToList();
-            collectionAudioLanguages = await AddAudioLanguageTagsOrUndefined(boxSet, collectionAudioLanguages, cancellationToken).ConfigureAwait(false);
+            collectionAudioLanguages = await Task.Run(() => AddAudioLanguageTagsByName(boxSet, collectionAudioLanguages), cancellationToken).ConfigureAwait(false);
             if (collectionAudioLanguages.Count > 0)
             {
                 _logger.LogInformation("Added audio tags for {BoxSetName}: {Languages}", boxSet.Name, string.Join(", ", collectionAudioLanguages));
@@ -678,7 +674,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             collectionSubtitleLanguages = collectionSubtitleLanguages.Distinct().ToList();
             if (collectionSubtitleLanguages.Count > 0)
             {
-                collectionSubtitleLanguages = await Task.Run(() => AddSubtitleLanguageTags(boxSet, collectionSubtitleLanguages), cancellationToken).ConfigureAwait(false);
+                collectionSubtitleLanguages = await Task.Run(() => AddSubtitleLanguageTagsByName(boxSet, collectionSubtitleLanguages), cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Added subtitle tags for {BoxSetName}: {Languages}", boxSet.Name, string.Join(", ", collectionSubtitleLanguages));
             }
             else
@@ -1341,6 +1337,30 @@ public class LanguageTagsManager : IHostedService, IDisposable
         return languages;
     }
 
+    private List<string> AddAudioLanguageTagsByName(BaseItem item, List<string> languages)
+    {
+        // Remove duplicates
+        var languageNames = languages.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var prefix = GetAudioLanguageTagPrefix();
+        foreach (var languageName in languageNames)
+        {
+            string tag = $"{prefix}{languageName}";
+
+            // Avoid duplicates
+            if (!item.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            {
+                item.AddTag(tag);
+            }
+        }
+
+        // Save the changes
+        var parent = item.GetParent();
+        _libraryManager.UpdateItemAsync(item: item, parent: parent, updateReason: ItemUpdateType.MetadataEdit, cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
+
+        return languages;
+    }
+
     private List<string> AddSubtitleLanguageTags(BaseItem item, List<string> languages)
     {
         // Filter out languages based on the whitelist (ISO codes)
@@ -1351,6 +1371,30 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
         // Remove duplicates (in case multiple ISO codes map to same name)
         languageNames = languageNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var prefix = GetSubtitleLanguageTagPrefix();
+        foreach (var languageName in languageNames)
+        {
+            string tag = $"{prefix}{languageName}";
+
+            // Avoid duplicates
+            if (!item.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            {
+                item.AddTag(tag);
+            }
+        }
+
+        // Save the changes
+        var parent = item.GetParent();
+        _libraryManager.UpdateItemAsync(item: item, parent: parent, updateReason: ItemUpdateType.MetadataEdit, cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
+
+        return languages;
+    }
+
+    private List<string> AddSubtitleLanguageTagsByName(BaseItem item, List<string> languages)
+    {
+        // Remove duplicates
+        var languageNames = languages.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         var prefix = GetSubtitleLanguageTagPrefix();
         foreach (var languageName in languageNames)
