@@ -383,18 +383,52 @@ public class LanguageTagsManager : IHostedService, IDisposable
     {
         if (movie is Video video)
         {
-            if (HasAudioLanguageTags(video))
+            bool shouldProcessVideo = fullScan;
+            bool hasExistingAudioTags = HasAudioLanguageTags(video);
+            bool hasExistingSubtitleTags = HasSubtitleLanguageTags(video);
+
+            // Check if we need to process audio tags
+            if (hasExistingAudioTags)
             {
                 if (!fullScan)
                 {
-                    _logger.LogInformation("Audio tags exist, skipping {VideoName}", video.Name);
-                    return;
+                    _logger.LogInformation("Audio tags exist for {VideoName}", video.Name);
                 }
-
-                RemoveAudioLanguageTags(video);
+                else
+                {
+                    RemoveAudioLanguageTags(video);
+                    shouldProcessVideo = true;
+                }
+            }
+            else
+            {
+                // No audio tags exist, need to process
+                shouldProcessVideo = true;
             }
 
-            await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
+            // Check if we need to process subtitle tags
+            if (subtitleTags)
+            {
+                if (hasExistingSubtitleTags)
+                {
+                    if (fullScan)
+                    {
+                        RemoveSubtitleLanguageTags(video);
+                        shouldProcessVideo = true;
+                    }
+                }
+                else
+                {
+                    // No subtitle tags exist, need to process
+                    shouldProcessVideo = true;
+                }
+            }
+
+            // Process the video if needed
+            if (shouldProcessVideo)
+            {
+                await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -916,12 +950,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
                     if (subtitleLanguages.Count > 0)
                     {
-                        await Task.Run(() => AddSubtitleLanguageTags(season, seasonSubtitleLanguages), cancellationToken).ConfigureAwait(false);
-                        _logger.LogInformation("Added external subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguages));
+                        _logger.LogInformation("Found external subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguages));
                     }
                     else
                     {
-                        _logger.LogWarning("No external subtitle information found for VIDEO {VideoName}", video.Name);
+                        _logger.LogDebug("No external subtitle information found for VIDEO {VideoName}", video.Name);
                     }
                 }
             }
