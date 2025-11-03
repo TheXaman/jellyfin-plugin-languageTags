@@ -484,8 +484,12 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 if (episode is Video video)
                 {
+                    bool shouldProcessVideo = fullScan;
+                    bool hasExistingAudioTags = HasAudioLanguageTags(video);
+                    bool hasExistingSubtitleTags = HasSubtitleLanguageTags(video);
+
                     // Check if the video has subtitle language tags and subtitleTags is enabled
-                    if (HasSubtitleLanguageTags(video) && subtitleTags)
+                    if (hasExistingSubtitleTags && subtitleTags)
                     {
                         if (!fullScan)
                         {
@@ -496,28 +500,43 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         else
                         {
                             RemoveSubtitleLanguageTags(episode);
+                            shouldProcessVideo = true;
                         }
+                    }
+                    else if (subtitleTags)
+                    {
+                        // No subtitle tags exist, need to process
+                        shouldProcessVideo = true;
                     }
 
                     // Check if the video has audio language tags
-                    if (HasAudioLanguageTags(video))
+                    if (hasExistingAudioTags)
                     {
                         if (!fullScan)
                         {
-                            _logger.LogInformation("Audio tags exist, skipping {VideoName}", video.Name);
+                            _logger.LogInformation("Audio tags exist for {VideoName}", video.Name);
                             var episodeLanguagesTmp = StripAudioTagPrefix(GetAudioLanguageTags(video));
                             seasonAudioLanguages.AddRange(episodeLanguagesTmp);
-                            continue;
                         }
                         else
                         {
                             RemoveAudioLanguageTags(episode);
+                            shouldProcessVideo = true;
                         }
                     }
+                    else
+                    {
+                        // No audio tags exist, need to process
+                        shouldProcessVideo = true;
+                    }
 
-                    var (audioLanguages, subtitleLanguages) = await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
-                    seasonAudioLanguages.AddRange(audioLanguages);
-                    seasonSubtitleLanguages.AddRange(subtitleLanguages);
+                    // Process the video if needed
+                    if (shouldProcessVideo)
+                    {
+                        var (audioLanguages, subtitleLanguages) = await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
+                        seasonAudioLanguages.AddRange(audioLanguages);
+                        seasonSubtitleLanguages.AddRange(subtitleLanguages);
+                    }
                 }
             }
 
@@ -550,6 +569,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 _logger.LogWarning("No subtitle information found for SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
             }
+
+            // Save season changes to repository
+            await season.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
         }
 
         // Remove existing language tags
@@ -577,6 +599,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
         {
             _logger.LogWarning("No subtitle information found for SERIES {SeriesName}", series.Name);
         }
+
+        // Save series changes to repository
+        await series.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
