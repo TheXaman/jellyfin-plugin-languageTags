@@ -1,7 +1,7 @@
 ---
 name: "Language Tags"
 guid: "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb"
-version: "0.4.4.7"
+version: "0.5.0.2"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 overview: "This plugin automatically adds language tags to the media."
@@ -12,4 +12,4 @@ owner: "TheXaman"
 imageUrl: "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png"
 artifacts:
   - "Jellyfin.Plugin.LanguageTags.dll"
-changelog: "[\"Bump version to 0.4.4.7\",\"feat: enhance language tag processing with ISO code conversion and reduce logging verbosity\",\"Update build.yaml and manifest-preview.json for preview version 0.4.4.6-preview\",\"Bump version to 0.4.4.6\",\"feat: reduced logging verbosity in LanguageTagsManager and add episode processing summary\",\"feat: add fallback for series where episodes have the seriesId as parentId instead of the seasonId refactor: reduce logging verbosity in LanguageTagsManager\"]"
+changelog: '["Bump version to 0.5.0.2","feat: add caching for language tag prefixes and whitelist to improve performance","fix: updated seasons and series to get language tags","Update build.yaml and manifest-preview.json for preview version 0.5.0.1-preview","Bump version to 0.5.0.1","fix: episode tags not being saved and updated seasons and series to work with language names","refactor: reduced calls to update database","Update build.yaml and manifest-preview.json for preview version 0.5.0.0-preview","Update build.yaml and manifest-preview.json for preview version 0.5.0.0-preview","Bump version to 0.5.0.0","refactor: removed dead code","refactor: inlined function","refactor: removed dead external subtitle code","feat: split ProcessSeries into sub function for seasons and episodes","feat: improved logging statements and reduced frequency","feat: enhance item processing to track skipped items and improve logging","feat: add logging for new languageTags","Refactor language tag services for improved readability and maintainability"]'

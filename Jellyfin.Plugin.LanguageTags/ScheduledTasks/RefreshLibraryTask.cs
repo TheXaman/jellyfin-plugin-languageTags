@@ -22,18 +22,14 @@ public class RefreshLibraryTask : IScheduledTask, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="RefreshLibraryTask"/> class.
     /// </summary>
-    /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
-    /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{RefreshLibraryTask}"/> interface.</param>
-    /// <param name="boxsetLogger">Instance of the <see cref="ILogger{LanguageTagsManager}"/> interface.</param>
+    /// <param name="languageTagsManager">Instance of the <see cref="LanguageTagsManager"/> class.</param>
     public RefreshLibraryTask(
-        ILibraryManager libraryManager,
-        ICollectionManager collectionManager,
         ILogger<RefreshLibraryTask> logger,
-        ILogger<LanguageTagsManager> boxsetLogger)
+        LanguageTagsManager languageTagsManager)
     {
         _logger = logger;
-        _languageTagsManager = new LanguageTagsManager(libraryManager, collectionManager, boxsetLogger);
+        _languageTagsManager = languageTagsManager;
     }
 
     /// <inheritdoc/>

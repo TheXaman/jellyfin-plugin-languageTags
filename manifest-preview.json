@@ -9,108 +9,12 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
-        "version": "0.4.4.7",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.7\n- feat: enhance language tag processing with ISO code conversion and reduce logging verbosity\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.6-preview\n- Bump version to 0.4.4.6\n- feat: reduced logging verbosity in LanguageTagsManager and add episode processing summary\n- feat: add fallback for series where episodes have the seriesId as parentId instead of the seasonId refactor: reduce logging verbosity in LanguageTagsManager",
+        "version": "0.5.0.2",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.5.0.2\n- feat: add caching for language tag prefixes and whitelist to improve performance\n- fix: updated seasons and series to get language tags\n- Update build.yaml and manifest-preview.json for preview version 0.5.0.1-preview\n- Bump version to 0.5.0.1\n- fix: episode tags not being saved and updated seasons and series to work with language names\n- refactor: reduced calls to update database\n- Update build.yaml and manifest-preview.json for preview version 0.5.0.0-preview\n- Update build.yaml and manifest-preview.json for preview version 0.5.0.0-preview\n- Bump version to 0.5.0.0\n- refactor: removed dead code\n- refactor: inlined function\n- refactor: removed dead external subtitle code\n- feat: split ProcessSeries into sub function for seasons and episodes\n- feat: improved logging statements and reduced frequency\n- feat: enhance item processing to track skipped items and improve logging\n- feat: add logging for new languageTags\n- Refactor language tag services for improved readability and maintainability",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.7-preview/language-tags_0.4.4.7.zip",
-        "checksum": "4878398eafbacf572838994d82870afa",
-        "timestamp": "2025-11-04T20:49:15Z"
-      },
-      {
-        "version": "0.4.4.6",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.6\n- feat: reduced logging verbosity in LanguageTagsManager and add episode processing summary\n- feat: add fallback for series where episodes have the seriesId as parentId instead of the seasonId refactor: reduce logging verbosity in LanguageTagsManager\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.5-preview\n- Bump version to 0.4.4.5\n- feat: enhance logging for episode queries in LanguageTagsManager",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.6-preview/language-tags_0.4.4.6.zip",
-        "checksum": "290f18c20eafd8b989dfca10a1f94af9",
-        "timestamp": "2025-11-04T19:20:43Z"
-      },
-      {
-        "version": "0.4.4.5",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.5\n- feat: enhance logging for episode queries in LanguageTagsManager\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.4-preview\n- Bump version to 0.4.4.4\n- logdebug",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.5-preview/language-tags_0.4.4.5.zip",
-        "checksum": "95c1751ade471d3a4dc3df4547623d30",
-        "timestamp": "2025-11-04T18:28:17Z"
-      },
-      {
-        "version": "0.4.4.4",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.4\n- logdebug\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.3-preview\n- Bump version to 0.4.4.3\n- feat: enhance logging for series and season queries in LanguageTagsManager",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.4-preview/language-tags_0.4.4.4.zip",
-        "checksum": "5fa6dd6579be5f5d2e724d6006e4a18f",
-        "timestamp": "2025-11-04T17:57:28Z"
-      },
-      {
-        "version": "0.4.4.3",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.3\n- feat: enhance logging for series and season queries in LanguageTagsManager\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.2-preview\n- Bump version to 0.4.4.2\n- changed from LogDebug to LogInformation",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.3-preview/language-tags_0.4.4.3.zip",
-        "checksum": "3bba20d4d02c02b3e7b35384e7180ffe",
-        "timestamp": "2025-11-04T17:51:23Z"
-      },
-      {
-        "version": "0.4.4.2",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.2\n- changed from LogDebug to LogInformation\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.1-preview\n- Bump:version to 0.4.4.1\n- feat: enhance logging and handling for media sources and streams in LanguageTagsManager\n- feat: improve video processing logic for audio and subtitle tags in LanguageTagsManager",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.2-preview/language-tags_0.4.4.2.zip",
-        "checksum": "7d07410b7d64dfe62764afd8b70436fd",
-        "timestamp": "2025-11-04T17:31:25Z"
-      },
-      {
-        "version": "0.4.4.1",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump:version to 0.4.4.1\n- feat: enhance logging and handling for media sources and streams in LanguageTagsManager\n- feat: improve video processing logic for audio and subtitle tags in LanguageTagsManager\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.0-preview\n- Bump version to 0.4.4.0\n- feat: enhance video processing logic for audio and subtitle tags in LanguageTagsManager, addresses #25",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.1-preview/language-tags_0.4.4.1.zip",
-        "checksum": "5f0bb34cba2278454f6e6564e4b7934f",
-        "timestamp": "2025-11-04T16:22:39Z"
-      },
-      {
-        "version": "0.4.4.0",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.0\n- feat: enhance video processing logic for audio and subtitle tags in LanguageTagsManager, addresses #25\n- Update build.yaml and manifest-preview.json for preview version 0.4.3.1-preview\n- Bump version to 0.4.3.1\n- feat: fixed missing subtitle language tags for collections,  addresses #21",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.0-preview/language-tags_0.4.4.0.zip",
-        "checksum": "dbdd9e3717fd620b48de46810531e127",
-        "timestamp": "2025-11-03T16:50:58Z"
-      },
-      {
-        "version": "0.4.3.1",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.3.1\n- feat: fixed missing subtitle language tags for collections,  addresses #21\n- Update build.yaml and manifest-preview.json for preview version 0.4.3.0-preview\n- Bump version to 0.4.3.0\n- feat: implement audio language tag addition by name in LanguageTagsManager, addresses  #21",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.3.1-preview/language-tags_0.4.3.1.zip",
-        "checksum": "00eb7dc558c7065ffa7de4200c2e1d9e",
-        "timestamp": "2025-10-29T20:02:34Z"
-      },
-      {
-        "version": "0.4.3.0",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.3.0\n- feat: implement audio language tag addition by name in LanguageTagsManager, addresses  #21\n- Update build.yaml and manifest-preview.json for preview version 0.4.2.0-preview\n- Bump version to 0.4.2.0\n- refactor: optimize collection item retrieval in LanguageTagsManager, addresses #21\n- feat: add processing for non-media items in library scan, addresses #20\n- feat: add checkboxes for Music Genre and Live TV channels in configuration, addresses #20\n- Remove version 0.4.0.0 from manifest-preview.json",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.3.0-preview/language-tags_0.4.3.0.zip",
-        "checksum": "d04b2e7839953d77ae61ed0f4220451d",
-        "timestamp": "2025-10-29T18:48:49Z"
-      },
-      {
-        "version": "0.4.2.0",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.2.0\n- refactor: optimize collection item retrieval in LanguageTagsManager, addresses #21\n- feat: add processing for non-media items in library scan, addresses #20\n- feat: add checkboxes for Music Genre and Live TV channels in configuration, addresses #20\n- Remove version 0.4.0.0 from manifest-preview.json\n- Update build.yaml and manifest-preview.json for preview version 0.4.1.0-preview\n- Bump version to 0.4.1.0\n- fix: changed how movies are retrieved from collections, fixes #21\n- fix: \"Force full refresh for tv shows\" triggering a complete refresh, fixes #17 fix: Change return statements to continue in library processing for null checks",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.2.0-preview/language-tags_0.4.2.0.zip",
-        "checksum": "74156a0c393d54f190b649e82073dd5c",
-        "timestamp": "2025-10-29T18:07:14Z"
-      },
-      {
-        "version": "0.4.1.0",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.1.0\n- fix: changed how movies are retrieved from collections, fixes #21\n- fix: \"Force full refresh for tv shows\" triggering a complete refresh, fixes #17 fix: Change return statements to continue in library processing for null checks\n- Update build.yaml and manifest-preview.json for preview version 0.4.0.0-preview\n- Bump version to 0.4.0.0\n- feat: Add non-media tagging functionality with configuration options\n- Remove commas from language names to avoid tag splitting issue in Parental Control (#23)\n- feat: Enhance language checkbox display with ISO codes and improve selected language chips\n- add silent movies to whitelist, addresses #22",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.1.0-preview/language-tags_0.4.1.0.zip",
-        "checksum": "cf333e2b5bcd647f400ef8dd2a9b71c7",
-        "timestamp": "2025-10-28T19:11:41Z"
-      },
-      {
-        "version": "0.3.0.0",
-        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.3.0.0\n- feat: Use language names in tags and add visual language selector\n- Add customizable prefixes for audio and subtitle language tags with validation\n- Refactor: Simplify audio and subtitle language tag handling by introducing helper methods\n- Refactor: Replace FFmpeg with MediaStreams API for 10-100x performance boost\n- Update build.yaml and manifest.json for release version 0.2.1.2\n- Bump version to 0.2.1.2\n- Fix changelog special character handling using environment variable\n- Remove outdated preview version entries from manifest files\n- Fix changelog formatting to handle special characters in workflow\n- Bump version to 0.2.1.1\n- Remove redundant step to get last release tag in release workflow\n- Bump version to 0.2.1.0\n- - Migrate from .NET 8.0 to .NET 9.0 - Replace deprecated GetItemList() with QueryItems() API - Update TaskTriggerInfo to use TaskTriggerInfoType.IntervalTrigger - Add null path handling for video files in Jellyfin 10.11.0 - Filter out virtual items from TV show queries - Refactor file path validation logic - Add preview release workflow support\"\n- Update build.yaml and manifest.json for release version 0.2.0.1\n- Update build.yaml and manifest.json for release version 0.2.0.1\n- Update build.yaml to target .NET 9.0 framework\n- Bump version to 0.2.0.1\n- Enhance release workflow: update version handling, target .NET 9.0, and improve changelog generation\n- - Replace deprecated GetItemList() with QueryItems() API - Update TaskTriggerInfo to use TaskTriggerInfoType.IntervalTrigger\n- - Update to target Jellyfin 10.11.0 - Migrate from .NET 8.0 to .NET 9.0",
-        "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.3.0.0-preview/language-tags_0.3.0.0.zip",
-        "checksum": "403af490cf7b128b5c0d7f34dba7774c",
-        "timestamp": "2025-10-21T14:23:51Z"
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.5.0.2-preview/language-tags_0.5.0.2.zip",
+        "checksum": "356c349dad7ab121df3b7c05036fba80",
+        "timestamp": "2025-11-05T16:23:13Z"
       },
       {
         "version": "0.2.0.3",
