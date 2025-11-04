@@ -392,7 +392,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 if (!fullScan)
                 {
-                    _logger.LogInformation("Audio tags exist for {VideoName}", video.Name);
+                    _logger.LogDebug("Audio tags exist for {VideoName}", video.Name);
                 }
                 else
                 {
@@ -514,6 +514,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
             _logger.LogInformation("Processing SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
             var seasonAudioLanguages = new List<string>();
             var seasonSubtitleLanguages = new List<string>();
+            int episodesProcessed = 0;
+            int episodesSkipped = 0;
+
             foreach (var episode in episodes)
             {
                 if (episode is Video video)
@@ -527,7 +530,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     {
                         if (!fullScan)
                         {
-                            _logger.LogInformation("Subtitle tags exist for {VideoName}", video.Name);
+                            _logger.LogDebug("Subtitle tags exist for {VideoName}", video.Name);
                             var episodeLanguagesTmp = StripSubtitleTagPrefix(GetSubtitleLanguageTags(video));
                             seasonSubtitleLanguages.AddRange(episodeLanguagesTmp);
                         }
@@ -548,7 +551,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     {
                         if (!fullScan)
                         {
-                            _logger.LogInformation("Audio tags exist for {VideoName}", video.Name);
+                            _logger.LogDebug("Audio tags exist for {VideoName}", video.Name);
                             var episodeLanguagesTmp = StripAudioTagPrefix(GetAudioLanguageTags(video));
                             seasonAudioLanguages.AddRange(episodeLanguagesTmp);
                         }
@@ -570,8 +573,25 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         var (audioLanguages, subtitleLanguages) = await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
                         seasonAudioLanguages.AddRange(audioLanguages);
                         seasonSubtitleLanguages.AddRange(subtitleLanguages);
+                        episodesProcessed++;
+                    }
+                    else
+                    {
+                        episodesSkipped++;
                     }
                 }
+            }
+
+            // Log season processing summary
+            if (episodesProcessed > 0 || episodesSkipped > 0)
+            {
+                _logger.LogInformation(
+                    "SEASON {SeasonName} of {SeriesName}: processed {ProcessedCount}/{TotalCount} episodes ({SkippedCount} skipped)",
+                    season.Name,
+                    series.Name,
+                    episodesProcessed,
+                    episodes.Count,
+                    episodesSkipped);
             }
 
             // Make sure we have unique language tags
@@ -1271,7 +1291,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 // Add audio language tags
                 audioLanguages = await Task.Run(() => AddAudioLanguageTags(video, audioLanguages), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Added audio tags for VIDEO {VideoName}: {AudioLanguages}", video.Name, string.Join(", ", audioLanguages));
+                _logger.LogDebug("Added audio tags for VIDEO {VideoName}: {AudioLanguages}", video.Name, string.Join(", ", audioLanguages));
             }
             else
             {
@@ -1282,7 +1302,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 // Add subtitle language tags
                 subtitleLanguages = await Task.Run(() => AddSubtitleLanguageTags(video, subtitleLanguages), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Added subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguages));
+                _logger.LogDebug("Added subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguages));
             }
             else if (subtitleTags)
             {
