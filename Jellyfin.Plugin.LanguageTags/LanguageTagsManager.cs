@@ -506,7 +506,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
             if (episodes == null || episodes.Count == 0)
             {
-                _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
+                _logger.LogWarning("No episodes found in SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
                 continue;
             }
 
@@ -934,7 +934,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
             if (episodes == null || episodes.Count == 0)
             {
-                _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
+                _logger.LogWarning("No episodes found in SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
                 continue;
             }
 
@@ -1130,24 +1130,74 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private List<Season> GetSeasonsFromSeries(Series series)
     {
-        return _libraryManager.QueryItems(new InternalItemsQuery
+        _logger.LogDebug(
+            "Querying seasons for SERIES '{SeriesName}' (ID: {SeriesId})",
+            series.Name,
+            series.Id);
+
+        var seasons = _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Season],
             Recursive = true,
             ParentId = series.Id,
             IsVirtualItem = false
         }).Items.OfType<Season>().ToList();
+
+        _logger.LogDebug("Found {SeasonCount} season(s) in SERIES '{SeriesName}'", seasons.Count, series.Name);
+
+        return seasons;
     }
 
     private List<Episode> GetEpisodesFromSeason(Season season)
     {
-        return _libraryManager.QueryItems(new InternalItemsQuery
+        _logger.LogDebug(
+            "Querying episodes for SEASON '{SeasonName}' (ID: {SeasonId}, SeriesId: {SeriesId})",
+            season.Name,
+            season.Id,
+            season.SeriesId);
+
+        var episodes = _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Episode],
             Recursive = true,
             ParentId = season.Id,
             IsVirtualItem = false
         }).Items.OfType<Episode>().ToList();
+
+        if (episodes.Count == 0)
+        {
+            // Try alternative query without IsVirtualItem filter
+            _logger.LogDebug("No episodes found with IsVirtualItem=false, trying without that filter");
+            var allEpisodes = _libraryManager.QueryItems(new InternalItemsQuery
+            {
+                IncludeItemTypes = [BaseItemKind.Episode],
+                Recursive = true,
+                ParentId = season.Id
+            }).Items;
+
+            _logger.LogDebug(
+                "Found {TotalCount} total items for season, {EpisodeCount} are episodes",
+                allEpisodes.Count,
+                allEpisodes.OfType<Episode>().Count());
+
+            if (allEpisodes.Count > 0)
+            {
+                foreach (var item in allEpisodes.Take(5))
+                {
+                    _logger.LogDebug(
+                        "  Item: '{Name}' Type: {Type}, IsVirtualItem: {IsVirtual}",
+                        item.Name,
+                        item.GetType().Name,
+                        item.IsVirtualItem);
+                }
+            }
+        }
+        else
+        {
+            _logger.LogDebug("Found {EpisodeCount} episode(s) in SEASON '{SeasonName}'", episodes.Count, season.Name);
+        }
+
+        return episodes;
     }
 
     private async Task<(List<string> AudioLanguages, List<string> SubtitleLanguages)> ProcessVideo(Video video, bool subtitleTags, CancellationToken cancellationToken)
