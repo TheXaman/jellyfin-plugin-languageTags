@@ -1,7 +1,7 @@
 ---
 name: "Language Tags"
 guid: "e6ee25c2-d12c-4382-a48c-66ee9c1c33cb"
-version: "0.4.4.4"
+version: "0.4.4.5"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 overview: "This plugin automatically adds language tags to the media."
@@ -12,4 +12,4 @@ owner: "TheXaman"
 imageUrl: "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png"
 artifacts:
   - "Jellyfin.Plugin.LanguageTags.dll"
-changelog: "[\"Bump version to 0.4.4.4\",\"logdebug\",\"Update build.yaml and manifest-preview.json for preview version 0.4.4.3-preview\",\"Bump version to 0.4.4.3\",\"feat: enhance logging for series and season queries in LanguageTagsManager\"]"
+changelog: "[\"Bump version to 0.4.4.5\",\"feat: enhance logging for episode queries in LanguageTagsManager\",\"Update build.yaml and manifest-preview.json for preview version 0.4.4.4-preview\",\"Bump version to 0.4.4.4\",\"logdebug\"]"

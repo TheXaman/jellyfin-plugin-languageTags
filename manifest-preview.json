@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.4.4.5",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.5\n- feat: enhance logging for episode queries in LanguageTagsManager\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.4-preview\n- Bump version to 0.4.4.4\n- logdebug",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.5-preview/language-tags_0.4.4.5.zip",
+        "checksum": "95c1751ade471d3a4dc3df4547623d30",
+        "timestamp": "2025-11-04T18:28:17Z"
+      },
+      {
         "version": "0.4.4.4",
         "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.4\n- logdebug\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.3-preview\n- Bump version to 0.4.4.3\n- feat: enhance logging for series and season queries in LanguageTagsManager",
         "targetAbi": "10.11.0.0",
