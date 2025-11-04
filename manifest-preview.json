@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.4.4.7",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.7\n- feat: enhance language tag processing with ISO code conversion and reduce logging verbosity\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.6-preview\n- Bump version to 0.4.4.6\n- feat: reduced logging verbosity in LanguageTagsManager and add episode processing summary\n- feat: add fallback for series where episodes have the seriesId as parentId instead of the seasonId refactor: reduce logging verbosity in LanguageTagsManager",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.7-preview/language-tags_0.4.4.7.zip",
+        "checksum": "4878398eafbacf572838994d82870afa",
+        "timestamp": "2025-11-04T20:49:15Z"
+      },
+      {
         "version": "0.2.0.3",
         "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.2.0.3\n- Improve file path validation for videos in LanguageTagsManager to handle null or empty paths in Jellyfin 10.11.0\n- Update build.yaml to include .framework version and adjust sourceUrl for Jellyfin compatibility\n- Update sourceUrl in manifest-preview.json\n- Update build.yaml and manifest-preview.json for preview version 0.2.0.2-preview\n- Bump version to 0.2.0.2\n- Update build.yaml and manifest-preview.json for preview version 0.2.0.1-preview\n- Fix: Remove -preview suffix from version in manifest to maintain Jellyfin compatibility",
         "targetAbi": "10.11.0.0",
