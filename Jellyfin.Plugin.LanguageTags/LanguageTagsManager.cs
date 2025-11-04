@@ -1151,10 +1151,12 @@ public class LanguageTagsManager : IHostedService, IDisposable
     private List<Episode> GetEpisodesFromSeason(Season season)
     {
         _logger.LogInformation(
-            "Querying episodes for SEASON '{SeasonName}' (ID: {SeasonId}, SeriesId: {SeriesId})",
+            "Querying episodes for SEASON '{SeasonName}' of {SeriesName} (ID: {SeasonId}, SeriesId: {SeriesId}, IndexNumber: {IndexNumber})",
             season.Name,
+            season.SeriesName,
             season.Id,
-            season.SeriesId);
+            season.SeriesId,
+            season.IndexNumber);
 
         var episodes = _libraryManager.QueryItems(new InternalItemsQuery
         {
@@ -1167,7 +1169,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
         if (episodes.Count == 0)
         {
             // Try alternative query without IsVirtualItem filter
-            _logger.LogInformation("No episodes found with IsVirtualItem=false, trying without that filter");
+            _logger.LogInformation("No episodes of {SeriesName} found with IsVirtualItem=false, trying without that filter", season.SeriesName);
             var allEpisodes = _libraryManager.QueryItems(new InternalItemsQuery
             {
                 IncludeItemTypes = [BaseItemKind.Episode],
@@ -1176,8 +1178,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }).Items;
 
             _logger.LogInformation(
-                "Found {TotalCount} total items for season, {EpisodeCount} are episodes",
+                "Found {TotalCount} total items for season of {SeriesName}, {EpisodeCount} are episodes",
                 allEpisodes.Count,
+                season.SeriesName,
                 allEpisodes.OfType<Episode>().Count());
 
             if (allEpisodes.Count > 0)
@@ -1185,16 +1188,46 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 foreach (var item in allEpisodes.Take(5))
                 {
                     _logger.LogInformation(
-                        "  Item: '{Name}' Type: {Type}, IsVirtualItem: {IsVirtual}",
+                        "  Item: '{Name}' Type: {Type}, IsVirtualItem: {IsVirtual}, ParentId: {ParentId}",
                         item.Name,
                         item.GetType().Name,
-                        item.IsVirtualItem);
+                        item.IsVirtualItem,
+                        item.ParentId);
+                }
+            }
+            else
+            {
+                // Try querying all episodes and filtering manually
+                _logger.LogInformation("No items found with ParentId query of {SeriesName}, trying to query all episodes recursively", season.SeriesName);
+                var allEpisodesInLibrary = _libraryManager.QueryItems(new InternalItemsQuery
+                {
+                    IncludeItemTypes = [BaseItemKind.Episode],
+                    Recursive = true
+                }).Items.OfType<Episode>()
+                .Where(e => e.SeriesId == season.SeriesId && e.ParentIndexNumber == season.IndexNumber)
+                .ToList();
+
+                _logger.LogInformation("Found {EpisodeCount} episodes of {SeriesName} matching SeriesId and ParentIndexNumber", allEpisodesInLibrary.Count, season.SeriesName);
+
+                if (allEpisodesInLibrary.Count > 0)
+                {
+                    foreach (var ep in allEpisodesInLibrary.Take(5))
+                    {
+                        _logger.LogInformation(
+                            "  Matched Episode: '{Name}', IsVirtualItem: {IsVirtual}, ParentId: {ParentId}, SeasonId: {SeasonId}",
+                            ep.Name,
+                            ep.IsVirtualItem,
+                            ep.ParentId,
+                            season.Id);
+                    }
+
+                    return allEpisodesInLibrary;
                 }
             }
         }
         else
         {
-            _logger.LogInformation("Found {EpisodeCount} episode(s) in SEASON '{SeasonName}'", episodes.Count, season.Name);
+            _logger.LogInformation("Found {EpisodeCount} episode(s) in SEASON '{SeasonName}' of {SeriesName}", episodes.Count, season.Name, season.SeriesName);
         }
 
         return episodes;
