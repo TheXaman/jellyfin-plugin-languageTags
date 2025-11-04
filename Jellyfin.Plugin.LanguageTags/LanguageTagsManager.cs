@@ -209,7 +209,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
         var config = Plugin.Instance?.Configuration;
         if (config == null || !config.EnableNonMediaTagging)
         {
-            _logger.LogDebug("Non-media tagging is disabled");
+            _logger.LogInformation("Non-media tagging is disabled");
             return;
         }
 
@@ -954,7 +954,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     }
                     else
                     {
-                        _logger.LogDebug("No external subtitle information found for VIDEO {VideoName}", video.Name);
+                        _logger.LogInformation("No external subtitle information found for VIDEO {VideoName}", video.Name);
                     }
                 }
             }
@@ -1173,13 +1173,13 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 return (audioLanguages, subtitleLanguages);
             }
 
-            _logger.LogDebug("Found {SourceCount} media source(s) for VIDEO {VideoName}", mediaSources.Count, video.Name);
+            _logger.LogInformation("Found {SourceCount} media source(s) for VIDEO {VideoName}", mediaSources.Count, video.Name);
 
             foreach (var source in mediaSources)
             {
                 if (source.MediaStreams == null || source.MediaStreams.Count == 0)
                 {
-                    _logger.LogDebug("Media source has no streams for VIDEO {VideoName}", video.Name);
+                    _logger.LogInformation("Media source has no streams for VIDEO {VideoName}", video.Name);
                     continue;
                 }
 
@@ -1188,7 +1188,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Audio)
                     .ToList();
 
-                _logger.LogDebug("Found {AudioStreamCount} audio stream(s) for VIDEO {VideoName}", audioStreams.Count, video.Name);
+                _logger.LogInformation("Found {AudioStreamCount} audio stream(s) for VIDEO {VideoName}", audioStreams.Count, video.Name);
 
                 foreach (var stream in audioStreams)
                 {
@@ -1200,7 +1200,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         // Convert 2-letter codes to 3-letter codes
                         var threeLetterCode = ConvertToThreeLetterIsoCode(langCode);
                         audioLanguages.Add(threeLetterCode);
-                        _logger.LogDebug(
+                        _logger.LogInformation(
                             "Found audio language '{LangCode}' (converted to '{ThreeLetterCode}') for VIDEO {VideoName}",
                             langCode,
                             threeLetterCode,
@@ -1208,7 +1208,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     }
                     else
                     {
-                        _logger.LogDebug(
+                        _logger.LogInformation(
                             "Skipping audio stream with language '{LangCode}' for VIDEO {VideoName}",
                             langCode ?? "null",
                             video.Name);
@@ -1222,7 +1222,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Subtitle)
                         .ToList();
 
-                    _logger.LogDebug("Found {SubtitleStreamCount} subtitle stream(s) for VIDEO {VideoName}", subtitleStreams.Count, video.Name);
+                    _logger.LogInformation("Found {SubtitleStreamCount} subtitle stream(s) for VIDEO {VideoName}", subtitleStreams.Count, video.Name);
 
                     foreach (var stream in subtitleStreams)
                     {
@@ -1234,7 +1234,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                             // Convert 2-letter codes to 3-letter codes
                             var threeLetterCode = ConvertToThreeLetterIsoCode(langCode);
                             subtitleLanguages.Add(threeLetterCode);
-                            _logger.LogDebug(
+                            _logger.LogInformation(
                                 "Found subtitle language '{LangCode}' (converted to '{ThreeLetterCode}') for VIDEO {VideoName}",
                                 langCode,
                                 threeLetterCode,
@@ -1242,7 +1242,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         }
                         else
                         {
-                            _logger.LogDebug(
+                            _logger.LogInformation(
                                 "Skipping subtitle stream with language '{LangCode}' for VIDEO {VideoName}",
                                 langCode ?? "null",
                                 video.Name);
