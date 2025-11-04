@@ -1160,15 +1160,71 @@ public class LanguageTagsManager : IHostedService, IDisposable
             // Get media sources from the video
             var mediaSources = video.GetMediaSources(false);
 
+            if (mediaSources == null || mediaSources.Count == 0)
+            {
+                _logger.LogWarning(
+                    "No media sources found for VIDEO {VideoName} (ID: {VideoId}, Path: {VideoPath})",
+                    video.Name,
+                    video.Id,
+                    video.Path ?? "null");
+
+                // Still try to add undefined tag if no sources found
+                audioLanguages = await AddAudioLanguageTagsOrUndefined(video, audioLanguages, cancellationToken).ConfigureAwait(false);
+                return (audioLanguages, subtitleLanguages);
+            }
+
+            _logger.LogDebug("Found {SourceCount} media source(s) for VIDEO {VideoName}", mediaSources.Count, video.Name);
+
             foreach (var source in mediaSources)
             {
-                // Extract audio languages from audio streams
-                var audioStreams = source.MediaStreams?
-                    .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Audio);
-
-                if (audioStreams != null)
+                if (source.MediaStreams == null || source.MediaStreams.Count == 0)
                 {
-                    foreach (var stream in audioStreams)
+                    _logger.LogDebug("Media source has no streams for VIDEO {VideoName}", video.Name);
+                    continue;
+                }
+
+                // Extract audio languages from audio streams
+                var audioStreams = source.MediaStreams
+                    .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Audio)
+                    .ToList();
+
+                _logger.LogDebug("Found {AudioStreamCount} audio stream(s) for VIDEO {VideoName}", audioStreams.Count, video.Name);
+
+                foreach (var stream in audioStreams)
+                {
+                    var langCode = stream.Language;
+                    if (!string.IsNullOrEmpty(langCode) &&
+                        !langCode.Equals("und", StringComparison.OrdinalIgnoreCase) &&
+                        !langCode.Equals("root", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Convert 2-letter codes to 3-letter codes
+                        var threeLetterCode = ConvertToThreeLetterIsoCode(langCode);
+                        audioLanguages.Add(threeLetterCode);
+                        _logger.LogDebug(
+                            "Found audio language '{LangCode}' (converted to '{ThreeLetterCode}') for VIDEO {VideoName}",
+                            langCode,
+                            threeLetterCode,
+                            video.Name);
+                    }
+                    else
+                    {
+                        _logger.LogDebug(
+                            "Skipping audio stream with language '{LangCode}' for VIDEO {VideoName}",
+                            langCode ?? "null",
+                            video.Name);
+                    }
+                }
+
+                // Extract subtitle languages if enabled
+                if (subtitleTags)
+                {
+                    var subtitleStreams = source.MediaStreams
+                        .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Subtitle)
+                        .ToList();
+
+                    _logger.LogDebug("Found {SubtitleStreamCount} subtitle stream(s) for VIDEO {VideoName}", subtitleStreams.Count, video.Name);
+
+                    foreach (var stream in subtitleStreams)
                     {
                         var langCode = stream.Language;
                         if (!string.IsNullOrEmpty(langCode) &&
@@ -1177,30 +1233,19 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         {
                             // Convert 2-letter codes to 3-letter codes
                             var threeLetterCode = ConvertToThreeLetterIsoCode(langCode);
-                            audioLanguages.Add(threeLetterCode);
+                            subtitleLanguages.Add(threeLetterCode);
+                            _logger.LogDebug(
+                                "Found subtitle language '{LangCode}' (converted to '{ThreeLetterCode}') for VIDEO {VideoName}",
+                                langCode,
+                                threeLetterCode,
+                                video.Name);
                         }
-                    }
-                }
-
-                // Extract subtitle languages if enabled
-                if (subtitleTags)
-                {
-                    var subtitleStreams = source.MediaStreams?
-                        .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Subtitle);
-
-                    if (subtitleStreams != null)
-                    {
-                        foreach (var stream in subtitleStreams)
+                        else
                         {
-                            var langCode = stream.Language;
-                            if (!string.IsNullOrEmpty(langCode) &&
-                                !langCode.Equals("und", StringComparison.OrdinalIgnoreCase) &&
-                                !langCode.Equals("root", StringComparison.OrdinalIgnoreCase))
-                            {
-                                // Convert 2-letter codes to 3-letter codes
-                                var threeLetterCode = ConvertToThreeLetterIsoCode(langCode);
-                                subtitleLanguages.Add(threeLetterCode);
-                            }
+                            _logger.LogDebug(
+                                "Skipping subtitle stream with language '{LangCode}' for VIDEO {VideoName}",
+                                langCode ?? "null",
+                                video.Name);
                         }
                     }
                 }
