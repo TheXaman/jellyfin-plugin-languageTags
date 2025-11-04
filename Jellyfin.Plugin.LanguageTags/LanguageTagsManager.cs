@@ -1130,7 +1130,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private List<Season> GetSeasonsFromSeries(Series series)
     {
-        _logger.LogDebug(
+        _logger.LogInformation(
             "Querying seasons for SERIES '{SeriesName}' (ID: {SeriesId})",
             series.Name,
             series.Id);
@@ -1143,14 +1143,14 @@ public class LanguageTagsManager : IHostedService, IDisposable
             IsVirtualItem = false
         }).Items.OfType<Season>().ToList();
 
-        _logger.LogDebug("Found {SeasonCount} season(s) in SERIES '{SeriesName}'", seasons.Count, series.Name);
+        _logger.LogInformation("Found {SeasonCount} season(s) in SERIES '{SeriesName}'", seasons.Count, series.Name);
 
         return seasons;
     }
 
     private List<Episode> GetEpisodesFromSeason(Season season)
     {
-        _logger.LogDebug(
+        _logger.LogInformation(
             "Querying episodes for SEASON '{SeasonName}' (ID: {SeasonId}, SeriesId: {SeriesId})",
             season.Name,
             season.Id,
@@ -1167,7 +1167,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
         if (episodes.Count == 0)
         {
             // Try alternative query without IsVirtualItem filter
-            _logger.LogDebug("No episodes found with IsVirtualItem=false, trying without that filter");
+            _logger.LogInformation("No episodes found with IsVirtualItem=false, trying without that filter");
             var allEpisodes = _libraryManager.QueryItems(new InternalItemsQuery
             {
                 IncludeItemTypes = [BaseItemKind.Episode],
@@ -1175,7 +1175,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 ParentId = season.Id
             }).Items;
 
-            _logger.LogDebug(
+            _logger.LogInformation(
                 "Found {TotalCount} total items for season, {EpisodeCount} are episodes",
                 allEpisodes.Count,
                 allEpisodes.OfType<Episode>().Count());
@@ -1184,7 +1184,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 foreach (var item in allEpisodes.Take(5))
                 {
-                    _logger.LogDebug(
+                    _logger.LogInformation(
                         "  Item: '{Name}' Type: {Type}, IsVirtualItem: {IsVirtual}",
                         item.Name,
                         item.GetType().Name,
@@ -1194,7 +1194,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
         }
         else
         {
-            _logger.LogDebug("Found {EpisodeCount} episode(s) in SEASON '{SeasonName}'", episodes.Count, season.Name);
+            _logger.LogInformation("Found {EpisodeCount} episode(s) in SEASON '{SeasonName}'", episodes.Count, season.Name);
         }
 
         return episodes;
