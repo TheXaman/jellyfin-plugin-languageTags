@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.4.4.1",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump:version to 0.4.4.1\n- feat: enhance logging and handling for media sources and streams in LanguageTagsManager\n- feat: improve video processing logic for audio and subtitle tags in LanguageTagsManager\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.0-preview\n- Bump version to 0.4.4.0\n- feat: enhance video processing logic for audio and subtitle tags in LanguageTagsManager, addresses #25",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.4.4.1-preview/language-tags_0.4.4.1.zip",
+        "checksum": "5f0bb34cba2278454f6e6564e4b7934f",
+        "timestamp": "2025-11-04T16:22:39Z"
+      },
+      {
         "version": "0.4.4.0",
         "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.0\n- feat: enhance video processing logic for audio and subtitle tags in LanguageTagsManager, addresses #25\n- Update build.yaml and manifest-preview.json for preview version 0.4.3.1-preview\n- Bump version to 0.4.3.1\n- feat: fixed missing subtitle language tags for collections,  addresses #21",
         "targetAbi": "10.11.0.0",
