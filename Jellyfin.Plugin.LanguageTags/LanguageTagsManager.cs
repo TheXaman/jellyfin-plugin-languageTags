@@ -511,7 +511,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             }
 
             // Get language tags from all episodes in the season
-            _logger.LogInformation("Processing SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
+            _logger.LogDebug("Processing SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
             var seasonAudioLanguages = new List<string>();
             var seasonSubtitleLanguages = new List<string>();
             int episodesProcessed = 0;
@@ -531,7 +531,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         if (!fullScan)
                         {
                             _logger.LogDebug("Subtitle tags exist for {VideoName}", video.Name);
-                            var episodeLanguagesTmp = StripSubtitleTagPrefix(GetSubtitleLanguageTags(video));
+                            var episodeLanguageNames = StripSubtitleTagPrefix(GetSubtitleLanguageTags(video));
+                            // Convert language names back to ISO codes for consistent processing
+                            var episodeLanguagesTmp = ConvertLanguageNamesToIso(episodeLanguageNames);
                             seasonSubtitleLanguages.AddRange(episodeLanguagesTmp);
                         }
                         else
@@ -552,7 +554,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         if (!fullScan)
                         {
                             _logger.LogDebug("Audio tags exist for {VideoName}", video.Name);
-                            var episodeLanguagesTmp = StripAudioTagPrefix(GetAudioLanguageTags(video));
+                            var episodeLanguageNames = StripAudioTagPrefix(GetAudioLanguageTags(video));
+                            // Convert language names back to ISO codes for consistent processing
+                            var episodeLanguagesTmp = ConvertLanguageNamesToIso(episodeLanguageNames);
                             seasonAudioLanguages.AddRange(episodeLanguagesTmp);
                         }
                         else
@@ -1117,6 +1121,49 @@ public class LanguageTagsManager : IHostedService, IDisposable
         }
 
         return languageNames;
+    }
+
+    private List<string> ConvertLanguageNamesToIso(List<string> languageNames)
+    {
+        var isoCodes = new List<string>();
+
+        foreach (var languageName in languageNames)
+        {
+            // Try to find the language by name by searching through all entries
+            LanguageInfo? foundLanguage = null;
+            foreach (var kvp in LanguageData.LanguageDictionary)
+            {
+                if (kvp.Value.Name.Equals(languageName, StringComparison.OrdinalIgnoreCase))
+                {
+                    foundLanguage = kvp.Value;
+                    break;
+                }
+            }
+
+            if (foundLanguage != null)
+            {
+                // Prefer Iso6392 (3-letter code), but fall back to Iso6392B if needed
+                var isoCode = !string.IsNullOrEmpty(foundLanguage.Iso6392) ? foundLanguage.Iso6392 :
+                              !string.IsNullOrEmpty(foundLanguage.Iso6392B) ? foundLanguage.Iso6392B : languageName;
+                isoCodes.Add(isoCode);
+            }
+            else
+            {
+                // If it's already an ISO code (3 letters), keep it
+                if (languageName.Length == 3)
+                {
+                    isoCodes.Add(languageName);
+                }
+                else
+                {
+                    // Fallback to the original value if we can't convert it
+                    _logger.LogWarning("Could not find ISO code for language name '{LanguageName}', using name as fallback", languageName);
+                    isoCodes.Add(languageName);
+                }
+            }
+        }
+
+        return isoCodes;
     }
 
     private List<Movie> GetMoviesFromLibrary()
