@@ -209,7 +209,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
         var config = Plugin.Instance?.Configuration;
         if (config == null || !config.EnableNonMediaTagging)
         {
-            _logger.LogDebug("Non-media tagging is disabled");
+            _logger.LogInformation("Non-media tagging is disabled");
             return;
         }
 
@@ -506,7 +506,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
             if (episodes == null || episodes.Count == 0)
             {
-                _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
+                _logger.LogWarning("No episodes found in SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
                 continue;
             }
 
@@ -934,7 +934,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
             if (episodes == null || episodes.Count == 0)
             {
-                _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
+                _logger.LogWarning("No episodes found in SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
                 continue;
             }
 
@@ -954,7 +954,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     }
                     else
                     {
-                        _logger.LogDebug("No external subtitle information found for VIDEO {VideoName}", video.Name);
+                        _logger.LogInformation("No external subtitle information found for VIDEO {VideoName}", video.Name);
                     }
                 }
             }
@@ -1130,24 +1130,107 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private List<Season> GetSeasonsFromSeries(Series series)
     {
-        return _libraryManager.QueryItems(new InternalItemsQuery
+        _logger.LogInformation(
+            "Querying seasons for SERIES '{SeriesName}' (ID: {SeriesId})",
+            series.Name,
+            series.Id);
+
+        var seasons = _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Season],
             Recursive = true,
             ParentId = series.Id,
             IsVirtualItem = false
         }).Items.OfType<Season>().ToList();
+
+        _logger.LogInformation("Found {SeasonCount} season(s) in SERIES '{SeriesName}'", seasons.Count, series.Name);
+
+        return seasons;
     }
 
     private List<Episode> GetEpisodesFromSeason(Season season)
     {
-        return _libraryManager.QueryItems(new InternalItemsQuery
+        _logger.LogInformation(
+            "Querying episodes for SEASON '{SeasonName}' of {SeriesName} (ID: {SeasonId}, SeriesId: {SeriesId}, IndexNumber: {IndexNumber})",
+            season.Name,
+            season.SeriesName,
+            season.Id,
+            season.SeriesId,
+            season.IndexNumber);
+
+        var episodes = _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Episode],
             Recursive = true,
             ParentId = season.Id,
             IsVirtualItem = false
         }).Items.OfType<Episode>().ToList();
+
+        if (episodes.Count == 0)
+        {
+            // Try alternative query without IsVirtualItem filter
+            _logger.LogInformation("No episodes of {SeriesName} found with IsVirtualItem=false, trying without that filter", season.SeriesName);
+            var allEpisodes = _libraryManager.QueryItems(new InternalItemsQuery
+            {
+                IncludeItemTypes = [BaseItemKind.Episode],
+                Recursive = true,
+                ParentId = season.Id
+            }).Items;
+
+            _logger.LogInformation(
+                "Found {TotalCount} total items for season of {SeriesName}, {EpisodeCount} are episodes",
+                allEpisodes.Count,
+                season.SeriesName,
+                allEpisodes.OfType<Episode>().Count());
+
+            if (allEpisodes.Count > 0)
+            {
+                foreach (var item in allEpisodes.Take(5))
+                {
+                    _logger.LogInformation(
+                        "  Item: '{Name}' Type: {Type}, IsVirtualItem: {IsVirtual}, ParentId: {ParentId}",
+                        item.Name,
+                        item.GetType().Name,
+                        item.IsVirtualItem,
+                        item.ParentId);
+                }
+            }
+            else
+            {
+                // Try querying all episodes and filtering manually
+                _logger.LogInformation("No items found with ParentId query of {SeriesName}, trying to query all episodes recursively", season.SeriesName);
+                var allEpisodesInLibrary = _libraryManager.QueryItems(new InternalItemsQuery
+                {
+                    IncludeItemTypes = [BaseItemKind.Episode],
+                    Recursive = true
+                }).Items.OfType<Episode>()
+                .Where(e => e.SeriesId == season.SeriesId && e.ParentIndexNumber == season.IndexNumber)
+                .ToList();
+
+                _logger.LogInformation("Found {EpisodeCount} episodes of {SeriesName} matching SeriesId and ParentIndexNumber", allEpisodesInLibrary.Count, season.SeriesName);
+
+                if (allEpisodesInLibrary.Count > 0)
+                {
+                    foreach (var ep in allEpisodesInLibrary.Take(5))
+                    {
+                        _logger.LogInformation(
+                            "  Matched Episode: '{Name}', IsVirtualItem: {IsVirtual}, ParentId: {ParentId}, SeasonId: {SeasonId}",
+                            ep.Name,
+                            ep.IsVirtualItem,
+                            ep.ParentId,
+                            season.Id);
+                    }
+
+                    return allEpisodesInLibrary;
+                }
+            }
+        }
+        else
+        {
+            _logger.LogInformation("Found {EpisodeCount} episode(s) in SEASON '{SeasonName}' of {SeriesName}", episodes.Count, season.Name, season.SeriesName);
+        }
+
+        return episodes;
     }
 
     private async Task<(List<string> AudioLanguages, List<string> SubtitleLanguages)> ProcessVideo(Video video, bool subtitleTags, CancellationToken cancellationToken)
@@ -1160,15 +1243,71 @@ public class LanguageTagsManager : IHostedService, IDisposable
             // Get media sources from the video
             var mediaSources = video.GetMediaSources(false);
 
+            if (mediaSources == null || mediaSources.Count == 0)
+            {
+                _logger.LogWarning(
+                    "No media sources found for VIDEO {VideoName} (ID: {VideoId}, Path: {VideoPath})",
+                    video.Name,
+                    video.Id,
+                    video.Path ?? "null");
+
+                // Still try to add undefined tag if no sources found
+                audioLanguages = await AddAudioLanguageTagsOrUndefined(video, audioLanguages, cancellationToken).ConfigureAwait(false);
+                return (audioLanguages, subtitleLanguages);
+            }
+
+            _logger.LogInformation("Found {SourceCount} media source(s) for VIDEO {VideoName}", mediaSources.Count, video.Name);
+
             foreach (var source in mediaSources)
             {
-                // Extract audio languages from audio streams
-                var audioStreams = source.MediaStreams?
-                    .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Audio);
-
-                if (audioStreams != null)
+                if (source.MediaStreams == null || source.MediaStreams.Count == 0)
                 {
-                    foreach (var stream in audioStreams)
+                    _logger.LogInformation("Media source has no streams for VIDEO {VideoName}", video.Name);
+                    continue;
+                }
+
+                // Extract audio languages from audio streams
+                var audioStreams = source.MediaStreams
+                    .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Audio)
+                    .ToList();
+
+                _logger.LogInformation("Found {AudioStreamCount} audio stream(s) for VIDEO {VideoName}", audioStreams.Count, video.Name);
+
+                foreach (var stream in audioStreams)
+                {
+                    var langCode = stream.Language;
+                    if (!string.IsNullOrEmpty(langCode) &&
+                        !langCode.Equals("und", StringComparison.OrdinalIgnoreCase) &&
+                        !langCode.Equals("root", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Convert 2-letter codes to 3-letter codes
+                        var threeLetterCode = ConvertToThreeLetterIsoCode(langCode);
+                        audioLanguages.Add(threeLetterCode);
+                        _logger.LogInformation(
+                            "Found audio language '{LangCode}' (converted to '{ThreeLetterCode}') for VIDEO {VideoName}",
+                            langCode,
+                            threeLetterCode,
+                            video.Name);
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            "Skipping audio stream with language '{LangCode}' for VIDEO {VideoName}",
+                            langCode ?? "null",
+                            video.Name);
+                    }
+                }
+
+                // Extract subtitle languages if enabled
+                if (subtitleTags)
+                {
+                    var subtitleStreams = source.MediaStreams
+                        .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Subtitle)
+                        .ToList();
+
+                    _logger.LogInformation("Found {SubtitleStreamCount} subtitle stream(s) for VIDEO {VideoName}", subtitleStreams.Count, video.Name);
+
+                    foreach (var stream in subtitleStreams)
                     {
                         var langCode = stream.Language;
                         if (!string.IsNullOrEmpty(langCode) &&
@@ -1177,30 +1316,19 @@ public class LanguageTagsManager : IHostedService, IDisposable
                         {
                             // Convert 2-letter codes to 3-letter codes
                             var threeLetterCode = ConvertToThreeLetterIsoCode(langCode);
-                            audioLanguages.Add(threeLetterCode);
+                            subtitleLanguages.Add(threeLetterCode);
+                            _logger.LogInformation(
+                                "Found subtitle language '{LangCode}' (converted to '{ThreeLetterCode}') for VIDEO {VideoName}",
+                                langCode,
+                                threeLetterCode,
+                                video.Name);
                         }
-                    }
-                }
-
-                // Extract subtitle languages if enabled
-                if (subtitleTags)
-                {
-                    var subtitleStreams = source.MediaStreams?
-                        .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Subtitle);
-
-                    if (subtitleStreams != null)
-                    {
-                        foreach (var stream in subtitleStreams)
+                        else
                         {
-                            var langCode = stream.Language;
-                            if (!string.IsNullOrEmpty(langCode) &&
-                                !langCode.Equals("und", StringComparison.OrdinalIgnoreCase) &&
-                                !langCode.Equals("root", StringComparison.OrdinalIgnoreCase))
-                            {
-                                // Convert 2-letter codes to 3-letter codes
-                                var threeLetterCode = ConvertToThreeLetterIsoCode(langCode);
-                                subtitleLanguages.Add(threeLetterCode);
-                            }
+                            _logger.LogInformation(
+                                "Skipping subtitle stream with language '{LangCode}' for VIDEO {VideoName}",
+                                langCode ?? "null",
+                                video.Name);
                         }
                     }
                 }
