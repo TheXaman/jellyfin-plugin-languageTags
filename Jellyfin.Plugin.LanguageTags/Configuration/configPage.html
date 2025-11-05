@@ -106,7 +106,6 @@
                             <button is="emby-button" type="button" class="raised block" id="refresh-movies"><span>Force full refresh for Movies</span></button>
                             <button is="emby-button" type="button" class="raised block" id="refresh-tvshows"><span>Force full refresh for TV Shows</span></button>
                             <button is="emby-button" type="button" class="raised block" id="refresh-collections"><span>Force full refresh for Collections</span></button>
-                            <button is="emby-button" type="button" class="raised block" id="refresh-external-subtitles"><span>Force full refresh for EXTERNAL Subtitles</span></button>
                             <button is="emby-button" type="button" class="raised block" id="refresh-everything"><span>Force full refresh for Everything</span></button>
                         </div>
                         <hr />
@@ -127,13 +126,13 @@
                                     <p><strong>Use Case:</strong> If you use "Allow items with tags" to filter content by language, non-media items (artists, albums, people, etc.) will be hidden. This feature tags those items so they remain visible.</p>
                                 </div>
                             </div>
-                            
+
                             <label for="non-media-tag">Non-Media Tag Name:</label>
                             <input type="text" id="non-media-tag" name="non-media-tag" placeholder="item" />
                             <div class="fieldDescription">
                                 <p>The tag name to apply to non-media items. Default is "item". Make sure to add this tag to your "Allow items with tags" list in Parental Control settings.</p>
                             </div>
-                            
+
                             <h4 style="margin-top: 20px;">Select Item Types to Tag:</h4>
                             <div class="fieldDescription" style="margin-bottom: 10px;">
                                 <p>Choose which types of content should receive the non-media tag. Only selected types will be tagged.</p>
@@ -397,7 +396,7 @@
                             var lang = allLanguages.find(function(l) { return l.name === langName; });
                             var chip = document.createElement("div");
                             chip.style.cssText = "display: inline-flex; align-items: center; background: #2196F3; color: white; padding: 5px 10px; border-radius: 16px; font-size: 0.9em;";
-                            
+
                             var isoCodesText = lang ? ' (' + lang.iso.join(', ') + ')' : '';
                             chip.innerHTML = langName + '<span style="opacity: 0.8; margin-left: 4px;">' + isoCodesText + '</span> <button type="button" style="background: none; border: none; color: white; margin-left: 8px; cursor: pointer; font-size: 1.2em; padding: 0; line-height: 1;">&times;</button>';
 
@@ -574,23 +573,6 @@
                     ApiClient.fetch(request)
                         .then(function () {
                             Dashboard.alert("Full language tag refresh for collections queued");
-                        })
-                        .catch(function () {
-                            Dashboard.alert({
-                                message: "Unexpected error occurred!",
-                            });
-                        });
-                });
-
-                $("#refresh-external-subtitles").on("click", function () {
-                    var request = {
-                        url: ApiClient.getUrl("LanguageTags/RefreshLanguageTags?type=externalsubtitles"),
-                        type: "POST",
-                    };
-
-                    ApiClient.fetch(request)
-                        .then(function () {
-                            Dashboard.alert("Full external subtitle language tag refresh queued");
                         })
                         .catch(function () {
                             Dashboard.alert({
