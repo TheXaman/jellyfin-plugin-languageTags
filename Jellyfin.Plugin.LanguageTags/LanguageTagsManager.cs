@@ -632,9 +632,13 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             }
         }
 
-        // Add audio tags to season
-        seasonAudioLanguages = await _tagService.AddAudioLanguageTagsOrUndefined(
-            season, seasonAudioLanguages, cancellationToken).ConfigureAwait(false);
+        // Add audio tags to season (languages are already converted from episodes)
+        if (seasonAudioLanguages.Count > 0)
+        {
+            seasonAudioLanguages = await Task.Run(
+                () => _tagService.AddLanguageTags(season, seasonAudioLanguages, TagType.Audio, convertFromIso: false),
+                cancellationToken).ConfigureAwait(false);
+        }
 
         // Add subtitle tags to season if enabled
         if (seasonSubtitleLanguages.Count > 0 && subtitleTags)
@@ -659,8 +663,11 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
         }
 
         // Save season to repository
-        await season.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken)
-            .ConfigureAwait(false);
+        if (seasonAudioLanguages.Count > 0 || (seasonSubtitleLanguages.Count > 0 && subtitleTags))
+        {
+            await season.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         return (seasonAudioLanguages, seasonSubtitleLanguages);
     }
@@ -688,9 +695,13 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             seriesSubtitleLanguages.AddRange(seasonSubtitles);
         }
 
-        // Add audio tags to series
-        seriesAudioLanguages = await _tagService.AddAudioLanguageTagsOrUndefined(
-            series, seriesAudioLanguages, cancellationToken).ConfigureAwait(false);
+        // Add audio tags to series (languages are already converted from seasons)
+        if (seriesAudioLanguages.Count > 0)
+        {
+            seriesAudioLanguages = await Task.Run(
+                () => _tagService.AddLanguageTags(series, seriesAudioLanguages, TagType.Audio, convertFromIso: false),
+                cancellationToken).ConfigureAwait(false);
+        }
 
         // Add subtitle tags to series if enabled
         if (seriesSubtitleLanguages.Count > 0 && subtitleTags)
@@ -711,8 +722,11 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
         }
 
         // Save series to repository
-        await series.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken)
-            .ConfigureAwait(false);
+        if (seriesAudioLanguages.Count > 0 || (seriesSubtitleLanguages.Count > 0 && subtitleTags))
+        {
+            await series.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     /// <summary>
