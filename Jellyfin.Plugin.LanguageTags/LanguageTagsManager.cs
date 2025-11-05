@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +11,6 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.MediaEncoding;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -28,9 +23,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
 {
     private readonly ILibraryManager _libraryManager;
     private readonly ICollectionManager _collectionManager;
-    private readonly HashSet<string> _queuedTmdbCollectionIds;
     private readonly ILogger<LanguageTagsManager> _logger;
-    private readonly IMediaEncoder _mediaEncoder;
     private static readonly char[] Separator = new[] { ',' };
 
     /// <summary>
@@ -39,14 +32,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{LanguageTagsManager}"/> interface.</param>
-    /// <param name="mediaEncoder">Instance of the <see cref="IMediaEncoder"/> interface.</param>
-    public LanguageTagsManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<LanguageTagsManager> logger, IMediaEncoder mediaEncoder)
+    public LanguageTagsManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<LanguageTagsManager> logger)
     {
         _libraryManager = libraryManager;
         _collectionManager = collectionManager;
         _logger = logger;
-        _mediaEncoder = mediaEncoder;
-        _queuedTmdbCollectionIds = new HashSet<string>();
     }
 
     /// <summary>
@@ -57,13 +47,6 @@ public class LanguageTagsManager : IHostedService, IDisposable
     /// <returns>A <see cref="Task"/> representing the library scan progress.</returns>
     public async Task ScanLibrary(bool fullScan = false, string type = "everything")
     {
-        // Check if the ffmpeg / encoder path is set
-        if (string.IsNullOrEmpty(_mediaEncoder.EncoderPath))
-        {
-            _logger.LogError("FFmpeg / encoder path is not set");
-            return;
-        }
-
         // Get configuration value for AlwaysForceFullRefresh
         var alwaysForceFullRefresh = Plugin.Instance?.Configuration?.AlwaysForceFullRefresh ?? false;
         fullScan = fullScan || alwaysForceFullRefresh;
@@ -86,9 +69,6 @@ public class LanguageTagsManager : IHostedService, IDisposable
             _logger.LogInformation("Extract subtitle languages enabled");
         }
 
-        // Print the ffmpeg / encoder path
-        GetFFmpegPath(true);
-
         // Process the libraries
         switch (type.ToLowerInvariant())
         {
@@ -96,6 +76,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 await ProcessLibraryMovies(fullScan, synchronously, subtitleTags).ConfigureAwait(false);
                 break;
             case "series":
+            case "tvshows":
                 await ProcessLibrarySeries(fullScan, synchronously, subtitleTags).ConfigureAwait(false);
                 break;
             case "collections":
@@ -117,6 +98,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
                 // Process external subtitles
                 await ProcessLibraryExternalSubtitles(synchronously, subtitleTags).ConfigureAwait(false);
+
+                // Process non-media items
+                await ProcessNonMediaItems().ConfigureAwait(false);
 
                 break;
         }
@@ -217,6 +201,145 @@ public class LanguageTagsManager : IHostedService, IDisposable
     }
 
     /// <summary>
+    /// Processes non-media items and applies tags.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the processing.</returns>
+    public async Task ProcessNonMediaItems()
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null || !config.EnableNonMediaTagging)
+        {
+            _logger.LogInformation("Non-media tagging is disabled");
+            return;
+        }
+
+        var tagName = config.NonMediaTag ?? "item";
+        var itemTypesString = config.NonMediaItemTypes ?? string.Empty;
+        var itemTypes = itemTypesString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .ToList();
+
+        if (itemTypes.Count == 0)
+        {
+            _logger.LogInformation("No non-media item types selected for tagging");
+            return;
+        }
+
+        _logger.LogInformation("************************************");
+        _logger.LogInformation("*  Processing non-media items...   *");
+        _logger.LogInformation("************************************");
+        _logger.LogInformation("Applying tag '{TagName}' to {Count} item types", tagName, itemTypes.Count);
+
+        foreach (var itemType in itemTypes)
+        {
+            try
+            {
+                // Convert string to BaseItemKind
+                if (!Enum.TryParse<BaseItemKind>(itemType, out var kind))
+                {
+                    _logger.LogWarning("Unknown item type: {ItemType}", itemType);
+                    continue;
+                }
+
+                var items = _libraryManager.QueryItems(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { kind },
+                    Recursive = true
+                }).Items;
+
+                _logger.LogInformation("Found {Count} {ItemType} items", items.Count, itemType);
+
+                int taggedCount = 0;
+                foreach (var item in items)
+                {
+                    if (!item.Tags.Contains(tagName, StringComparer.OrdinalIgnoreCase))
+                    {
+                        var tagsList = item.Tags.ToList();
+                        tagsList.Add(tagName);
+                        item.Tags = tagsList.ToArray();
+                        await item.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, CancellationToken.None)
+                            .ConfigureAwait(false);
+                        taggedCount++;
+                    }
+                }
+
+                _logger.LogInformation("Tagged {TaggedCount} of {TotalCount} {ItemType} items", taggedCount, items.Count, itemType);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing non-media items of type {ItemType}", itemType);
+            }
+        }
+
+        _logger.LogInformation("Completed non-media item tagging");
+    }
+
+    /// <summary>
+    /// Removes non-media tags from all items.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the removal process.</returns>
+    public async Task RemoveNonMediaTags()
+    {
+        var config = Plugin.Instance?.Configuration;
+        var tagName = config?.NonMediaTag ?? "item";
+        var itemTypesString = config?.NonMediaItemTypes ?? string.Empty;
+        var itemTypes = itemTypesString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .ToList();
+
+        _logger.LogInformation("Starting removal of non-media tag '{TagName}' from library", tagName);
+
+        if (itemTypes.Count == 0)
+        {
+            _logger.LogWarning("No non-media item types configured for tag removal");
+            return;
+        }
+
+        try
+        {
+            foreach (var itemType in itemTypes)
+            {
+                if (Enum.TryParse<BaseItemKind>(itemType, out var kind))
+                {
+                    var items = _libraryManager.QueryItems(new InternalItemsQuery
+                    {
+                        IncludeItemTypes = new[] { kind },
+                        Recursive = true
+                    }).Items;
+
+                    _logger.LogInformation("Removing tag from {Count} {ItemType} items", items.Count, itemType);
+
+                    int removedCount = 0;
+                    foreach (var item in items)
+                    {
+                        var originalCount = item.Tags.Length;
+                        item.Tags = item.Tags.Where(t =>
+                            !t.Equals(tagName, StringComparison.OrdinalIgnoreCase)).ToArray();
+
+                        if (item.Tags.Length < originalCount)
+                        {
+                            await item.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, CancellationToken.None)
+                                .ConfigureAwait(false);
+                            removedCount++;
+                        }
+                    }
+
+                    _logger.LogInformation("Removed tag from {RemovedCount} {ItemType} items", removedCount, itemType);
+                }
+            }
+
+            _logger.LogInformation("Completed removal of non-media tags");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing non-media tags from library");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Processes the libraries movies.
     /// </summary>
     /// <param name="fullScan">if set to <c>true</c> [full scan].</param>
@@ -260,24 +383,52 @@ public class LanguageTagsManager : IHostedService, IDisposable
     {
         if (movie is Video video)
         {
-            if (!HasValidPath(video))
-            {
-                _logger.LogWarning("Invalid file path for {VideoName}", video.Name);
-                return;
-            }
+            bool shouldProcessVideo = fullScan;
+            bool hasExistingAudioTags = HasAudioLanguageTags(video);
+            bool hasExistingSubtitleTags = HasSubtitleLanguageTags(video);
 
-            if (HasAudioLanguageTags(video))
+            // Check if we need to process audio tags
+            if (hasExistingAudioTags)
             {
                 if (!fullScan)
                 {
-                    _logger.LogInformation("Aduio tags exist, skipping {VideoName}", video.Name);
-                    return;
+                    _logger.LogDebug("Audio tags exist for {VideoName}", video.Name);
                 }
-
-                RemoveAudioLanguageTags(video);
+                else
+                {
+                    RemoveAudioLanguageTags(video);
+                    shouldProcessVideo = true;
+                }
+            }
+            else
+            {
+                // No audio tags exist, need to process
+                shouldProcessVideo = true;
             }
 
-            await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
+            // Check if we need to process subtitle tags
+            if (subtitleTags)
+            {
+                if (hasExistingSubtitleTags)
+                {
+                    if (fullScan)
+                    {
+                        RemoveSubtitleLanguageTags(video);
+                        shouldProcessVideo = true;
+                    }
+                }
+                else
+                {
+                    // No subtitle tags exist, need to process
+                    shouldProcessVideo = true;
+                }
+            }
+
+            // Process the video if needed
+            if (shouldProcessVideo)
+            {
+                await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -324,7 +475,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 if (series == null)
                 {
                     _logger.LogWarning("Series is null!");
-                    return;
+                    continue;
                 }
 
                 await ProcessSeries(series, fullScan, subtitleTags, CancellationToken.None).ConfigureAwait(false);
@@ -355,59 +506,96 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
             if (episodes == null || episodes.Count == 0)
             {
-                _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
+                _logger.LogWarning("No episodes found in SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
                 continue;
             }
 
             // Get language tags from all episodes in the season
-            _logger.LogInformation("Processing SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
+            _logger.LogDebug("Processing SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
             var seasonAudioLanguages = new List<string>();
             var seasonSubtitleLanguages = new List<string>();
+            int episodesProcessed = 0;
+            int episodesSkipped = 0;
+
             foreach (var episode in episodes)
             {
                 if (episode is Video video)
                 {
-                    if (!HasValidPath(video))
-                    {
-                        _logger.LogWarning("Invalid file path for {VideoName} in Season {SeasonName} for {SeriesName}", video.Name, season.Name, series.Name);
-                        continue;
-                    }
+                    bool shouldProcessVideo = fullScan;
+                    bool hasExistingAudioTags = HasAudioLanguageTags(video);
+                    bool hasExistingSubtitleTags = HasSubtitleLanguageTags(video);
 
                     // Check if the video has subtitle language tags and subtitleTags is enabled
-                    if (HasSubtitleLanguageTags(video) && subtitleTags)
+                    if (hasExistingSubtitleTags && subtitleTags)
                     {
                         if (!fullScan)
                         {
-                            _logger.LogInformation("Subtitle tags exist for {VideoName}", video.Name);
-                            var episodeLanguagesTmp = GetSubtitleLanguageTags(video).Select(lang => lang.Substring(18)).ToList(); // Strip "subtitle_language_" prefix
+                            _logger.LogDebug("Subtitle tags exist for {VideoName}", video.Name);
+                            var episodeLanguageNames = StripSubtitleTagPrefix(GetSubtitleLanguageTags(video));
+                            // Convert language names back to ISO codes for consistent processing
+                            var episodeLanguagesTmp = ConvertLanguageNamesToIso(episodeLanguageNames);
                             seasonSubtitleLanguages.AddRange(episodeLanguagesTmp);
                         }
                         else
                         {
                             RemoveSubtitleLanguageTags(episode);
+                            shouldProcessVideo = true;
                         }
+                    }
+                    else if (subtitleTags)
+                    {
+                        // No subtitle tags exist, need to process
+                        shouldProcessVideo = true;
                     }
 
                     // Check if the video has audio language tags
-                    if (HasAudioLanguageTags(video))
+                    if (hasExistingAudioTags)
                     {
                         if (!fullScan)
                         {
-                            _logger.LogInformation("Audio tags exist, skipping {VideoName}", video.Name);
-                            var episodeLanguagesTmp = GetAudioLanguageTags(video).Select(lang => lang.Substring(9)).ToList(); // Strip "language_" prefix
+                            _logger.LogDebug("Audio tags exist for {VideoName}", video.Name);
+                            var episodeLanguageNames = StripAudioTagPrefix(GetAudioLanguageTags(video));
+                            // Convert language names back to ISO codes for consistent processing
+                            var episodeLanguagesTmp = ConvertLanguageNamesToIso(episodeLanguageNames);
                             seasonAudioLanguages.AddRange(episodeLanguagesTmp);
-                            continue;
                         }
                         else
                         {
                             RemoveAudioLanguageTags(episode);
+                            shouldProcessVideo = true;
                         }
                     }
+                    else
+                    {
+                        // No audio tags exist, need to process
+                        shouldProcessVideo = true;
+                    }
 
-                    var (audioLanguages, subtitleLanguages) = await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
-                    seasonAudioLanguages.AddRange(audioLanguages);
-                    seasonSubtitleLanguages.AddRange(subtitleLanguages);
+                    // Process the video if needed
+                    if (shouldProcessVideo)
+                    {
+                        var (audioLanguages, subtitleLanguages) = await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
+                        seasonAudioLanguages.AddRange(audioLanguages);
+                        seasonSubtitleLanguages.AddRange(subtitleLanguages);
+                        episodesProcessed++;
+                    }
+                    else
+                    {
+                        episodesSkipped++;
+                    }
                 }
+            }
+
+            // Log season processing summary
+            if (episodesProcessed > 0 || episodesSkipped > 0)
+            {
+                _logger.LogInformation(
+                    "SEASON {SeasonName} of {SeriesName}: processed {ProcessedCount}/{TotalCount} episodes ({SkippedCount} skipped)",
+                    season.Name,
+                    series.Name,
+                    episodesProcessed,
+                    episodes.Count,
+                    episodesSkipped);
             }
 
             // Make sure we have unique language tags
@@ -423,23 +611,10 @@ public class LanguageTagsManager : IHostedService, IDisposable
             RemoveSubtitleLanguageTags(season);
 
             // Add audio language tags to the season
+            seasonAudioLanguages = await AddAudioLanguageTagsOrUndefined(season, seasonAudioLanguages, cancellationToken).ConfigureAwait(false);
             if (seasonAudioLanguages.Count > 0)
             {
-                seasonAudioLanguages = await Task.Run(() => AddAudioLanguageTags(season, seasonAudioLanguages), cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Added audio tags for SEASON {SeasonName} of {SeriesName}: {Languages}", season.Name, series.Name, string.Join(", ", seasonAudioLanguages));
-            }
-            else
-            {
-                var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
-                if (!disableUndTags)
-                {
-                    await Task.Run(() => AddAudioLanguageTags(season, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogWarning("No audio language information found for SEASON {SeasonName} of {SeriesName}, added language_und(efined)", season.Name, series.Name);
-                }
-                else
-                {
-                    _logger.LogWarning("No audio language information found for SEASON {SeasonName} of {SeriesName}, skipped adding undefined tags", season.Name, series.Name);
-                }
             }
 
             // Add subtitle language tags to the season
@@ -452,6 +627,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 _logger.LogWarning("No subtitle information found for SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
             }
+
+            // Save season changes to repository
+            await season.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
         }
 
         // Remove existing language tags
@@ -463,23 +641,10 @@ public class LanguageTagsManager : IHostedService, IDisposable
         seriesSubtitleLanguages = seriesSubtitleLanguages.Distinct().ToList();
 
         // Add audio language tags to the series
+        seriesAudioLanguages = await AddAudioLanguageTagsOrUndefined(series, seriesAudioLanguages, cancellationToken).ConfigureAwait(false);
         if (seriesAudioLanguages.Count > 0)
         {
-            seriesAudioLanguages = await Task.Run(() => AddAudioLanguageTags(series, seriesAudioLanguages), cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Added audio tags for SERIES {SeriesName}: {Languages}", series.Name, string.Join(", ", seriesAudioLanguages));
-        }
-        else
-        {
-            var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
-            if (!disableUndTags)
-            {
-                await Task.Run(() => AddAudioLanguageTags(series, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("No audio language information found for SERIES {SeriesName}, added language_und(efined)", series.Name);
-            }
-            else
-            {
-                _logger.LogWarning("No audio language information found for SERIES {SeriesName}, skipped adding undefined tags", series.Name);
-            }
         }
 
         // Add subtitle language tags to the series
@@ -492,6 +657,9 @@ public class LanguageTagsManager : IHostedService, IDisposable
         {
             _logger.LogWarning("No subtitle information found for SERIES {SeriesName}", series.Name);
         }
+
+        // Save series changes to repository
+        await series.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -533,12 +701,10 @@ public class LanguageTagsManager : IHostedService, IDisposable
     {
         if (collection is BoxSet boxSet)
         {
-            var collectionItems = _libraryManager.QueryItems(new InternalItemsQuery
-            {
-                IncludeItemTypes = [BaseItemKind.Movie],
-                Recursive = true,
-                ParentId = boxSet.Id
-            }).Items.Select(m => m as Movie).ToList();
+            // Alternative approach using GetLinkedChildren if the above doesn't work:
+            var collectionItems = boxSet.GetLinkedChildren()
+                .OfType<Movie>()
+                .ToList();
 
             if (collectionItems.Count == 0)
             {
@@ -558,7 +724,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 if (movie == null)
                 {
                     _logger.LogWarning("Movie is null!");
-                    return;
+                    continue;
                 }
 
                 var movieLanguages = GetAudioLanguageTags(movie);
@@ -568,28 +734,15 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 collectionSubtitleLanguages.AddRange(movieSubtitleLanguages);
             }
 
-            // Strip "language_" prefix
-            collectionAudioLanguages = collectionAudioLanguages.Select(lang => lang.Substring(9)).ToList();
+            // Strip audio language prefix
+            collectionAudioLanguages = StripAudioTagPrefix(collectionAudioLanguages);
 
             // Add language tags to the box set
             collectionAudioLanguages = collectionAudioLanguages.Distinct().ToList();
+            collectionAudioLanguages = await Task.Run(() => AddAudioLanguageTagsByName(boxSet, collectionAudioLanguages), cancellationToken).ConfigureAwait(false);
             if (collectionAudioLanguages.Count > 0)
             {
-                collectionAudioLanguages = await Task.Run(() => AddAudioLanguageTags(boxSet, collectionAudioLanguages), cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Added audio tags for {BoxSetName}: {Languages}", boxSet.Name, string.Join(", ", collectionAudioLanguages));
-            }
-            else
-            {
-                var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
-                if (!disableUndTags)
-                {
-                    await Task.Run(() => AddAudioLanguageTags(boxSet, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                    _logger.LogWarning("No audio language information found for {BoxSetName}, added language_und(efined)", boxSet.Name);
-                }
-                else
-                {
-                    _logger.LogWarning("No audio language information found for {BoxSetName}, skipped adding undefined tags", boxSet.Name);
-                }
             }
 
             if (!subtitleTags) // skip subtitle tags
@@ -597,14 +750,14 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 return;
             }
 
-            // Strip "subtitle_language_" prefix
-            collectionSubtitleLanguages = collectionSubtitleLanguages.Select(lang => lang.Substring(18)).ToList();
+            // Strip subtitle language prefix
+            collectionSubtitleLanguages = StripSubtitleTagPrefix(collectionSubtitleLanguages);
 
             // Add subtitle language tags to the box set
             collectionSubtitleLanguages = collectionSubtitleLanguages.Distinct().ToList();
             if (collectionSubtitleLanguages.Count > 0)
             {
-                collectionSubtitleLanguages = await Task.Run(() => AddSubtitleLanguageTags(boxSet, collectionSubtitleLanguages), cancellationToken).ConfigureAwait(false);
+                collectionSubtitleLanguages = await Task.Run(() => AddSubtitleLanguageTagsByName(boxSet, collectionSubtitleLanguages), cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Added subtitle tags for {BoxSetName}: {Languages}", boxSet.Name, string.Join(", ", collectionSubtitleLanguages));
             }
             else
@@ -708,7 +861,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 if (series == null)
                 {
                     _logger.LogWarning("Series is null!");
-                    return;
+                    continue;
                 }
 
                 await ProcessSeriesExternalSubtitles(series, CancellationToken.None).ConfigureAwait(false);
@@ -727,13 +880,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             return;
         }
 
-        if (!HasValidPath(video))
-        {
-            _logger.LogWarning("Invalid file path for {VideoName}", video.Name);
-            return;
-        }
-
-        // Check if the video has subtitle language tags
+        // Check if the video has subtitle language tags from external files
         var subtitleLanguages = ExtractSubtitleLanguagesExternal(movie);
         if (subtitleLanguages.Count > 0)
         {
@@ -770,7 +917,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     if (movie == null)
                     {
                         _logger.LogWarning("Movie is null!");
-                        return;
+                        continue;
                     }
 
                     var movieSubtitleLanguages = ExtractSubtitleLanguagesExternal(movie);
@@ -811,7 +958,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
             if (episodes == null || episodes.Count == 0)
             {
-                _logger.LogWarning("No episodes found in SEASON {SeasonName}", season.Name);
+                _logger.LogWarning("No episodes found in SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
                 continue;
             }
 
@@ -822,23 +969,16 @@ public class LanguageTagsManager : IHostedService, IDisposable
             {
                 if (episode is Video video)
                 {
-                    if (!HasValidPath(video))
-                    {
-                        _logger.LogWarning("Invalid file path for {VideoName} in Season {SeasonName} for {SeriesName}", video.Name, season.Name, series.Name);
-                        continue;
-                    }
-
                     var subtitleLanguages = ExtractSubtitleLanguagesExternal(video);
                     seasonSubtitleLanguages.AddRange(subtitleLanguages);
 
                     if (subtitleLanguages.Count > 0)
                     {
-                        await Task.Run(() => AddSubtitleLanguageTags(season, seasonSubtitleLanguages), cancellationToken).ConfigureAwait(false);
-                        _logger.LogInformation("Added external subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguages));
+                        _logger.LogInformation("Found external subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguages));
                     }
                     else
                     {
-                        _logger.LogWarning("No external subtitle information found for VIDEO {VideoName}", video.Name);
+                        _logger.LogInformation("No external subtitle information found for VIDEO {VideoName}", video.Name);
                     }
                 }
             }
@@ -880,6 +1020,152 @@ public class LanguageTagsManager : IHostedService, IDisposable
     // Helper methods
     // ******************************************************************
 
+    private async Task<List<string>> AddAudioLanguageTagsOrUndefined(BaseItem item, List<string> audioLanguages, CancellationToken cancellationToken)
+    {
+        if (audioLanguages.Count > 0)
+        {
+            return await Task.Run(() => AddAudioLanguageTags(item, audioLanguages), cancellationToken).ConfigureAwait(false);
+        }
+
+        var disableUndTags = Plugin.Instance?.Configuration?.DisableUndefinedLanguageTags ?? false;
+        if (!disableUndTags)
+        {
+            await Task.Run(() => AddAudioLanguageTags(item, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
+            var prefix = GetAudioLanguageTagPrefix();
+            _logger.LogWarning("No audio language information found for {ItemName}, added {Prefix}Undetermined", item.Name, prefix);
+        }
+        else
+        {
+            _logger.LogWarning("No audio language information found for {ItemName}, skipped adding undefined tags", item.Name);
+        }
+
+        return audioLanguages;
+    }
+
+    private string GetAudioLanguageTagPrefix()
+    {
+        var prefix = Plugin.Instance?.Configuration?.AudioLanguageTagPrefix;
+        var subtitlePrefix = Plugin.Instance?.Configuration?.SubtitleLanguageTagPrefix;
+
+        // Validate prefix: must be at least 3 characters and different from subtitle prefix
+        if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 3)
+        {
+            return "language_";
+        }
+
+        // Ensure audio and subtitle prefixes are different
+        if (!string.IsNullOrWhiteSpace(subtitlePrefix) && prefix.Equals(subtitlePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Audio and subtitle prefixes cannot be identical. Using default audio prefix 'language_'");
+            return "language_";
+        }
+
+        return prefix;
+    }
+
+    private string GetSubtitleLanguageTagPrefix()
+    {
+        var prefix = Plugin.Instance?.Configuration?.SubtitleLanguageTagPrefix;
+        var audioPrefix = Plugin.Instance?.Configuration?.AudioLanguageTagPrefix;
+
+        // Validate prefix: must be at least 3 characters and different from audio prefix
+        if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 3)
+        {
+            return "subtitle_language_";
+        }
+
+        // Ensure audio and subtitle prefixes are different
+        if (!string.IsNullOrWhiteSpace(audioPrefix) && prefix.Equals(audioPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Audio and subtitle prefixes cannot be identical. Using default subtitle prefix 'subtitle_language_'");
+            return "subtitle_language_";
+        }
+
+        return prefix;
+    }
+
+    private List<string> StripAudioTagPrefix(IEnumerable<string> tags)
+    {
+        var prefix = GetAudioLanguageTagPrefix();
+        return tags
+            .Where(tag => tag.Length > prefix.Length)
+            .Select(tag => tag.Substring(prefix.Length))
+            .ToList();
+    }
+
+    private List<string> StripSubtitleTagPrefix(IEnumerable<string> tags)
+    {
+        var prefix = GetSubtitleLanguageTagPrefix();
+        return tags
+            .Where(tag => tag.Length > prefix.Length)
+            .Select(tag => tag.Substring(prefix.Length))
+            .ToList();
+    }
+
+    private List<string> ConvertIsoToLanguageNames(List<string> isoCodes)
+    {
+        var languageNames = new List<string>();
+
+        foreach (var isoCode in isoCodes)
+        {
+            if (LanguageData.TryGetLanguageInfo(isoCode, out var languageInfo) && languageInfo != null && !string.IsNullOrWhiteSpace(languageInfo.Name))
+            {
+                languageNames.Add(languageInfo.Name);
+            }
+            else
+            {
+                // Fallback to ISO code if name not found
+                _logger.LogWarning("Could not find language name for ISO code '{IsoCode}', using code as fallback", isoCode);
+                languageNames.Add(isoCode);
+            }
+        }
+
+        return languageNames;
+    }
+
+    private List<string> ConvertLanguageNamesToIso(List<string> languageNames)
+    {
+        var isoCodes = new List<string>();
+
+        foreach (var languageName in languageNames)
+        {
+            // Try to find the language by name by searching through all entries
+            LanguageInfo? foundLanguage = null;
+            foreach (var kvp in LanguageData.LanguageDictionary)
+            {
+                if (kvp.Value.Name.Equals(languageName, StringComparison.OrdinalIgnoreCase))
+                {
+                    foundLanguage = kvp.Value;
+                    break;
+                }
+            }
+
+            if (foundLanguage != null)
+            {
+                // Prefer Iso6392 (3-letter code), but fall back to Iso6392B if needed
+                var isoCode = !string.IsNullOrEmpty(foundLanguage.Iso6392) ? foundLanguage.Iso6392 :
+                              !string.IsNullOrEmpty(foundLanguage.Iso6392B) ? foundLanguage.Iso6392B : languageName;
+                isoCodes.Add(isoCode);
+            }
+            else
+            {
+                // If it's already an ISO code (3 letters), keep it
+                if (languageName.Length == 3)
+                {
+                    isoCodes.Add(languageName);
+                }
+                else
+                {
+                    // Fallback to the original value if we can't convert it
+                    _logger.LogWarning("Could not find ISO code for language name '{LanguageName}', using name as fallback", languageName);
+                    isoCodes.Add(languageName);
+                }
+            }
+        }
+
+        return isoCodes;
+    }
+
     private List<Movie> GetMoviesFromLibrary()
     {
         return _libraryManager.QueryItems(new InternalItemsQuery
@@ -911,24 +1197,64 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private List<Season> GetSeasonsFromSeries(Series series)
     {
-        return _libraryManager.QueryItems(new InternalItemsQuery
+        var seasons = _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Season],
             Recursive = true,
             ParentId = series.Id,
             IsVirtualItem = false
         }).Items.OfType<Season>().ToList();
+
+        return seasons;
     }
 
     private List<Episode> GetEpisodesFromSeason(Season season)
     {
-        return _libraryManager.QueryItems(new InternalItemsQuery
+        // Try primary query by ParentId first (works for most cases)
+        var episodes = _libraryManager.QueryItems(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Episode],
             Recursive = true,
             ParentId = season.Id,
             IsVirtualItem = false
         }).Items.OfType<Episode>().ToList();
+
+        if (episodes.Count == 0)
+        {
+            // Fallback: Some series (especially those with special characters) have episodes
+            // with ParentId pointing to Series instead of Season. Query by SeriesId and season number.
+            _logger.LogInformation(
+                "No episodes found by ParentId for SEASON '{SeasonName}' of {SeriesName}, trying SeriesId-based query",
+                season.Name,
+                season.SeriesName);
+
+            episodes = _libraryManager.QueryItems(new InternalItemsQuery
+            {
+                IncludeItemTypes = [BaseItemKind.Episode],
+                Recursive = true
+            }).Items.OfType<Episode>()
+            .Where(e => e.SeriesId == season.SeriesId && e.ParentIndexNumber == season.IndexNumber)
+            .ToList();
+
+            if (episodes.Count > 0)
+            {
+                _logger.LogInformation(
+                    "Found {EpisodeCount} episodes for SEASON '{SeasonName}' of {SeriesName} using SeriesId fallback query",
+                    episodes.Count,
+                    season.Name,
+                    season.SeriesName);
+            }
+        }
+
+        if (episodes.Count == 0)
+        {
+            _logger.LogWarning(
+                "No episodes found in SEASON '{SeasonName}' of '{SeriesName}'",
+                season.Name,
+                season.SeriesName);
+        }
+
+        return episodes;
     }
 
     private async Task<(List<string> AudioLanguages, List<string> SubtitleLanguages)> ProcessVideo(Video video, bool subtitleTags, CancellationToken cancellationToken)
@@ -936,54 +1262,96 @@ public class LanguageTagsManager : IHostedService, IDisposable
         var audioLanguages = new List<string>();
         var subtitleLanguages = new List<string>();
 
-        if (!HasValidPath(video))
-        {
-            _logger.LogWarning("Cannot process video {VideoName} - invalid path", video.Name);
-            return (audioLanguages, subtitleLanguages);
-        }
-
-        // Get the file path (HasValidPath already ensures it's valid)
-        var filePath = video.Path;
-        if (string.IsNullOrEmpty(filePath))
-        {
-            filePath = _libraryManager.GetItemById(video.Id)?.Path;
-        }
-
         try
         {
-            // Step 1: Run FFmpeg
-            string ffmpegOutput = await Task.Run(() => RunFFmpeg(filePath!)).ConfigureAwait(false);
+            // Get media sources from the video
+            var mediaSources = video.GetMediaSources(false);
 
-            // Step 2: Extract audio languages
-            audioLanguages = await Task.Run(() => ExtractAudioLanguages(ffmpegOutput)).ConfigureAwait(false);
+            if (mediaSources == null || mediaSources.Count == 0)
+            {
+                _logger.LogWarning("No media sources found for VIDEO {VideoName}", video.Name);
 
-            if (audioLanguages.Count > 0)
-            {
-                // Step 3: Add audio language tags
-                audioLanguages = await Task.Run(() => AddAudioLanguageTags(video, audioLanguages), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Added audio tags for VIDEO {VideoName}: {AudioLanguages}", video.Name, string.Join(", ", audioLanguages));
-            }
-            else
-            {
-                await Task.Run(() => AddAudioLanguageTags(video, new List<string> { "und" }), cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("No audio language information found for VIDEO {VideoName}, added language_und(efined)", video.Name);
-            }
-
-            if (!subtitleTags) // skip subtitle tags
-            {
+                // Still try to add undefined tag if no sources found
+                audioLanguages = await AddAudioLanguageTagsOrUndefined(video, audioLanguages, cancellationToken).ConfigureAwait(false);
                 return (audioLanguages, subtitleLanguages);
             }
 
-            // Step 4: Extract subtitle languages
-            subtitleLanguages = await Task.Run(() => ExtractSubtitleLanguages(ffmpegOutput, video)).ConfigureAwait(false);
-
-            if (subtitleLanguages.Count > 0)
+            foreach (var source in mediaSources)
             {
-                // Step 5: Add subtitle language tags
-                subtitleLanguages = await Task.Run(() => AddSubtitleLanguageTags(video, subtitleLanguages), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Added subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguages));
+                if (source.MediaStreams == null || source.MediaStreams.Count == 0)
+                {
+                    continue;
+                }
+
+                // Extract audio languages from audio streams
+                var audioStreams = source.MediaStreams
+                    .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Audio)
+                    .ToList();
+
+                foreach (var stream in audioStreams)
+                {
+                    var langCode = stream.Language;
+                    if (!string.IsNullOrEmpty(langCode) &&
+                        !langCode.Equals("und", StringComparison.OrdinalIgnoreCase) &&
+                        !langCode.Equals("root", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Convert 2-letter codes to 3-letter codes
+                        var threeLetterCode = ConvertToThreeLetterIsoCode(langCode);
+                        audioLanguages.Add(threeLetterCode);
+                    }
+                }
+
+                // Extract subtitle languages if enabled
+                if (subtitleTags)
+                {
+                    var subtitleStreams = source.MediaStreams
+                        .Where(s => s.Type == MediaBrowser.Model.Entities.MediaStreamType.Subtitle)
+                        .ToList();
+
+                    foreach (var stream in subtitleStreams)
+                    {
+                        var langCode = stream.Language;
+                        if (!string.IsNullOrEmpty(langCode) &&
+                            !langCode.Equals("und", StringComparison.OrdinalIgnoreCase) &&
+                            !langCode.Equals("root", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Convert 2-letter codes to 3-letter codes
+                            var threeLetterCode = ConvertToThreeLetterIsoCode(langCode);
+                            subtitleLanguages.Add(threeLetterCode);
+                        }
+                    }
+                }
+            }
+
+            // Get external subtitle files as well
+            if (subtitleTags)
+            {
+                var externalSubtitles = ExtractSubtitleLanguagesExternal(video);
+                subtitleLanguages.AddRange(externalSubtitles);
+            }
+
+            // Remove duplicates
+            audioLanguages = audioLanguages.Distinct().ToList();
+            subtitleLanguages = subtitleLanguages.Distinct().ToList();
+
+            if (audioLanguages.Count > 0)
+            {
+                // Add audio language tags
+                audioLanguages = await Task.Run(() => AddAudioLanguageTags(video, audioLanguages), cancellationToken).ConfigureAwait(false);
+                _logger.LogDebug("Added audio tags for VIDEO {VideoName}: {AudioLanguages}", video.Name, string.Join(", ", audioLanguages));
             }
             else
+            {
+                audioLanguages = await AddAudioLanguageTagsOrUndefined(video, audioLanguages, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (subtitleTags && subtitleLanguages.Count > 0)
+            {
+                // Add subtitle language tags
+                subtitleLanguages = await Task.Run(() => AddSubtitleLanguageTags(video, subtitleLanguages), cancellationToken).ConfigureAwait(false);
+                _logger.LogDebug("Added subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguages));
+            }
+            else if (subtitleTags)
             {
                 _logger.LogWarning("No subtitle information found for VIDEO {VideoName}", video.Name);
             }
@@ -998,27 +1366,32 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private bool HasAudioLanguageTags(BaseItem item)
     {
-        return item.Tags.Any(tag => tag.StartsWith("language_", StringComparison.OrdinalIgnoreCase));
+        var prefix = GetAudioLanguageTagPrefix();
+        return item.Tags.Any(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
     }
 
     private bool HasSubtitleLanguageTags(BaseItem item)
     {
-        return item.Tags.Any(tag => tag.StartsWith("subtitle_language_", StringComparison.OrdinalIgnoreCase));
+        var prefix = GetSubtitleLanguageTagPrefix();
+        return item.Tags.Any(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
     }
 
     private List<string> GetAudioLanguageTags(BaseItem item)
     {
-        return item.Tags.Where(tag => tag.StartsWith("language_", StringComparison.OrdinalIgnoreCase)).ToList();
+        var prefix = GetAudioLanguageTagPrefix();
+        return item.Tags.Where(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
     private List<string> GetSubtitleLanguageTags(BaseItem item)
     {
-        return item.Tags.Where(tag => tag.StartsWith("subtitle_language_", StringComparison.OrdinalIgnoreCase)).ToList();
+        var prefix = GetSubtitleLanguageTagPrefix();
+        return item.Tags.Where(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
     private void RemoveAudioLanguageTags(BaseItem item)
     {
-        foreach (var tag in item.Tags.Where(tag => tag.StartsWith("language_", StringComparison.OrdinalIgnoreCase)).ToList())
+        var prefix = GetAudioLanguageTagPrefix();
+        foreach (var tag in item.Tags.Where(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList())
         {
             var name = tag.ToString();
             var current = item.Tags;
@@ -1031,7 +1404,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private void RemoveSubtitleLanguageTags(BaseItem item)
     {
-        foreach (var tag in item.Tags.Where(tag => tag.StartsWith("subtitle_language_", StringComparison.OrdinalIgnoreCase)).ToList())
+        var prefix = GetSubtitleLanguageTagPrefix();
+        foreach (var tag in item.Tags.Where(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList())
         {
             var name = tag.ToString();
             var current = item.Tags;
@@ -1040,133 +1414,6 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 item.Tags = current.Where(tag => !tag.Equals(name, StringComparison.OrdinalIgnoreCase)).ToArray();
             }
         }
-    }
-
-    private bool HasValidPath(Video video)
-    {
-        var filePath = video.Path;
-        if (string.IsNullOrEmpty(filePath))
-        {
-            filePath = _libraryManager.GetItemById(video.Id)?.Path;
-        }
-
-        return !string.IsNullOrEmpty(filePath) && File.Exists(filePath);
-    }
-
-    private string GetFFmpegPath(bool printPath = false)
-    {
-        var encoderPath = _mediaEncoder.EncoderPath;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            if (printPath)
-            {
-                _logger.LogInformation("Windows detected");
-                _logger.LogInformation("Encoder path: {EncoderPath}", encoderPath);
-            }
-
-            return encoderPath;
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            if (printPath)
-            {
-                _logger.LogInformation("Linux detected");
-                _logger.LogInformation("Encoder path: {EncoderPath}", encoderPath);
-            }
-
-            return encoderPath;
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            if (printPath)
-            {
-                _logger.LogInformation("macOS detected");
-                _logger.LogInformation("Encoder path: {EncoderPath}", encoderPath);
-            }
-
-            return encoderPath;
-        }
-        else
-        {
-            throw new NotSupportedException("Unsupported operating system");
-        }
-    }
-
-    private async Task<string> RunFFmpeg(string filePath)
-    {
-        var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = GetFFmpegPath(),
-                Arguments = $"-i \"{filePath}\" -hide_banner",
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
-
-        var outputBuilder = new StringBuilder();
-        process.ErrorDataReceived += (sender, args) => outputBuilder.AppendLine(args.Data);
-
-        process.Start();
-        process.BeginErrorReadLine();
-
-        await process.WaitForExitAsync().ConfigureAwait(false);
-
-        return outputBuilder.ToString();
-    }
-
-    private List<string> ExtractAudioLanguages(string ffmpegOutput)
-    {
-        var audioLanguages = new List<string>();
-        var audioRegex = new Regex(@"\(\s*(\w{3})\s*\):\s*Audio");
-
-        foreach (Match match in audioRegex.Matches(ffmpegOutput))
-        {
-            var languageCode = match.Groups[1].Value;
-            if (LanguageData.IsValidLanguageCode(languageCode))
-            {
-                audioLanguages.Add(languageCode); // e.g., "eng", "ger"
-            }
-        }
-
-        // Remove duplicates
-        audioLanguages = audioLanguages.Distinct().ToList();
-
-        return audioLanguages;
-    }
-
-    private List<string> ExtractSubtitleLanguages(string ffmpegOutput, Video video)
-    {
-        var subtitleLanguages = new List<string>();
-
-        // Extract subtitle languages from ffmpeg output
-        var subtitleRegex = new Regex(@"\(\s*(\w{3})\s*\):\s*Subtitle");
-
-        foreach (Match match in subtitleRegex.Matches(ffmpegOutput))
-        {
-            var languageCode = match.Groups[1].Value;
-            if (LanguageData.IsValidLanguageCode(languageCode))
-            {
-                subtitleLanguages.Add(languageCode); // e.g., "eng", "ger"
-            }
-        }
-
-        // Get the subtitle languages from external files
-        var subtitleLanguagesExternal = ExtractSubtitleLanguagesExternal(video);
-
-        // Combine and filter out duplicates
-        subtitleLanguages.AddRange(subtitleLanguagesExternal);
-        subtitleLanguages = subtitleLanguages.Distinct().ToList();
-
-        // Filter out tags based on the whitelist and ISO 639-2/B language codes
-        if (subtitleLanguages.Count > 0)
-        {
-            subtitleLanguages = FilterOutLanguages(video, subtitleLanguages);
-        }
-
-        return subtitleLanguages;
     }
 
     private List<string> ExtractSubtitleLanguagesExternal(Video video)
@@ -1237,15 +1484,46 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private List<string> AddAudioLanguageTags(BaseItem item, List<string> languages)
     {
-        // Filter out languages based on the whitelist
+        // Filter out languages based on the whitelist (ISO codes)
         languages = FilterOutLanguages(item, languages);
 
-        foreach (var language in languages)
+        // Convert ISO codes to language names
+        var languageNames = ConvertIsoToLanguageNames(languages);
+
+        // Remove duplicates (in case multiple ISO codes map to same name)
+        languageNames = languageNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var prefix = GetAudioLanguageTagPrefix();
+        foreach (var languageName in languageNames)
         {
-            string tag = $"language_{language}";
+            string tag = $"{prefix}{languageName}";
 
             // Avoid duplicates
-            if (!item.Tags.Contains(tag))
+            if (!item.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            {
+                item.AddTag(tag);
+            }
+        }
+
+        // Save the changes
+        var parent = item.GetParent();
+        _libraryManager.UpdateItemAsync(item: item, parent: parent, updateReason: ItemUpdateType.MetadataEdit, cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
+
+        return languages;
+    }
+
+    private List<string> AddAudioLanguageTagsByName(BaseItem item, List<string> languages)
+    {
+        // Remove duplicates
+        var languageNames = languages.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var prefix = GetAudioLanguageTagPrefix();
+        foreach (var languageName in languageNames)
+        {
+            string tag = $"{prefix}{languageName}";
+
+            // Avoid duplicates
+            if (!item.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
             {
                 item.AddTag(tag);
             }
@@ -1260,15 +1538,46 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
     private List<string> AddSubtitleLanguageTags(BaseItem item, List<string> languages)
     {
-        // Filter out languages based on the whitelist
+        // Filter out languages based on the whitelist (ISO codes)
         languages = FilterOutLanguages(item, languages);
 
-        foreach (var language in languages)
+        // Convert ISO codes to language names
+        var languageNames = ConvertIsoToLanguageNames(languages);
+
+        // Remove duplicates (in case multiple ISO codes map to same name)
+        languageNames = languageNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var prefix = GetSubtitleLanguageTagPrefix();
+        foreach (var languageName in languageNames)
         {
-            string tag = $"subtitle_language_{language}";
+            string tag = $"{prefix}{languageName}";
 
             // Avoid duplicates
-            if (!item.Tags.Contains(tag))
+            if (!item.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            {
+                item.AddTag(tag);
+            }
+        }
+
+        // Save the changes
+        var parent = item.GetParent();
+        _libraryManager.UpdateItemAsync(item: item, parent: parent, updateReason: ItemUpdateType.MetadataEdit, cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
+
+        return languages;
+    }
+
+    private List<string> AddSubtitleLanguageTagsByName(BaseItem item, List<string> languages)
+    {
+        // Remove duplicates
+        var languageNames = languages.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var prefix = GetSubtitleLanguageTagPrefix();
+        foreach (var languageName in languageNames)
+        {
+            string tag = $"{prefix}{languageName}";
+
+            // Avoid duplicates
+            if (!item.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
             {
                 item.AddTag(tag);
             }

@@ -26,16 +26,14 @@ public class RefreshLibraryTask : IScheduledTask, IDisposable
     /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{RefreshLibraryTask}"/> interface.</param>
     /// <param name="boxsetLogger">Instance of the <see cref="ILogger{LanguageTagsManager}"/> interface.</param>
-    /// <param name="mediaEncoder">Instance of the <see cref="IMediaEncoder"/> interface.</param>
     public RefreshLibraryTask(
         ILibraryManager libraryManager,
         ICollectionManager collectionManager,
         ILogger<RefreshLibraryTask> logger,
-        ILogger<LanguageTagsManager> boxsetLogger,
-        IMediaEncoder mediaEncoder)
+        ILogger<LanguageTagsManager> boxsetLogger)
     {
         _logger = logger;
-        _languageTagsManager = new LanguageTagsManager(libraryManager, collectionManager, boxsetLogger, mediaEncoder);
+        _languageTagsManager = new LanguageTagsManager(libraryManager, collectionManager, boxsetLogger);
     }
 
     /// <inheritdoc/>
