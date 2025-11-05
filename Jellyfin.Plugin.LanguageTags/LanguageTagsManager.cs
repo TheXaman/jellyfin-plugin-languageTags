@@ -66,34 +66,49 @@ public class LanguageTagsManager : IHostedService, IDisposable
     /// </summary>
     /// <typeparam name="T">The type of items to process.</typeparam>
     /// <param name="items">List of items to process.</param>
-    /// <param name="processor">Function to process each item.</param>
+    /// <param name="processor">Function to process each item, returns true if processed, false if skipped.</param>
     /// <param name="synchronously">If true, process items synchronously; if false, process in parallel.</param>
-    /// <returns>Number of processed items.</returns>
-    private async Task<int> ProcessItemsAsync<T>(
+    /// <returns>Tuple of (processed count, skipped count).</returns>
+    private async Task<(int Processed, int Skipped)> ProcessItemsAsync<T>(
         List<T> items,
-        Func<T, CancellationToken, Task> processor,
+        Func<T, CancellationToken, Task<bool>> processor,
         bool synchronously)
     {
         int processed = 0;
+        int skipped = 0;
 
         if (!synchronously)
         {
             await Parallel.ForEachAsync(items, async (item, ct) =>
             {
-                await processor(item, ct).ConfigureAwait(false);
-                Interlocked.Increment(ref processed);
+                var wasProcessed = await processor(item, ct).ConfigureAwait(false);
+                if (wasProcessed)
+                {
+                    Interlocked.Increment(ref processed);
+                }
+                else
+                {
+                    Interlocked.Increment(ref skipped);
+                }
             }).ConfigureAwait(false);
         }
         else
         {
             foreach (var item in items)
             {
-                await processor(item, CancellationToken.None).ConfigureAwait(false);
-                Interlocked.Increment(ref processed);
+                var wasProcessed = await processor(item, CancellationToken.None).ConfigureAwait(false);
+                if (wasProcessed)
+                {
+                    processed++;
+                }
+                else
+                {
+                    skipped++;
+                }
             }
         }
 
-        return processed;
+        return (processed, skipped);
     }
 
     /// <summary>
@@ -505,19 +520,23 @@ public class LanguageTagsManager : IHostedService, IDisposable
         LogProcessingHeader("Processing movies...");
 
         var movies = _queryService.GetMoviesFromLibrary();
-        int processedMovies = await ProcessItemsAsync(
+        var (moviesProcessed, moviesSkipped) = await ProcessItemsAsync(
             movies,
             async (movie, ct) => await ProcessMovie(movie, fullScan, subtitleTags, ct).ConfigureAwait(false),
             synchronously).ConfigureAwait(false);
 
-        _logger.LogInformation("Processed {ProcessedMovies} of {TotalMovies} movies", processedMovies, movies.Count);
+        _logger.LogInformation(
+            "Movies: processed {ProcessedCount}/{TotalCount} ({SkippedCount} skipped)",
+            moviesProcessed,
+            movies.Count,
+            moviesSkipped);
     }
 
-    private async Task ProcessMovie(Movie movie, bool fullScan, bool subtitleTags, CancellationToken cancellationToken)
+    private async Task<bool> ProcessMovie(Movie movie, bool fullScan, bool subtitleTags, CancellationToken cancellationToken)
     {
         if (movie is not Video video)
         {
-            return;
+            return false;
         }
 
         var (shouldProcess, existingAudio, existingSubtitle) = CheckAndPrepareVideoForProcessing(video, fullScan, subtitleTags);
@@ -534,7 +553,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
                     audioLanguages.Count > 0 ? string.Join(", ", audioLanguages) : "none",
                     subtitleLanguages.Count > 0 ? string.Join(", ", subtitleLanguages) : "none");
             }
+
+            return true;
         }
+
+        return false;
     }
 
     /// <summary>
@@ -549,17 +572,19 @@ public class LanguageTagsManager : IHostedService, IDisposable
         LogProcessingHeader("Processing series...");
 
         var seriesList = _queryService.GetSeriesFromLibrary();
-        var processedSeries = await ProcessItemsAsync(
+        var (processedSeries, skippedSeries) = await ProcessItemsAsync(
             seriesList,
             async (seriesBaseItem, ct) =>
             {
                 if (seriesBaseItem is Series series)
                 {
                     await ProcessSeries(series, fullScan, subtitleTags, ct).ConfigureAwait(false);
+                    return true;
                 }
                 else
                 {
                     _logger.LogWarning("Series is null!");
+                    return false;
                 }
             },
             synchronously).ConfigureAwait(false);
@@ -753,15 +778,19 @@ public class LanguageTagsManager : IHostedService, IDisposable
         LogProcessingHeader("Processing collections...");
 
         var collections = _queryService.GetBoxSetsFromLibrary();
-        await ProcessItemsAsync(
+        var (collectionsProcessed, collectionsSkipped) = await ProcessItemsAsync(
             collections,
             async (collection, ct) => await ProcessCollection(collection, fullScan, subtitleTags, ct).ConfigureAwait(false),
             synchronously).ConfigureAwait(false);
 
-        _logger.LogInformation("Processed {TotalCollections} collections", collections.Count);
+        _logger.LogInformation(
+            "Collections: processed {ProcessedCount}/{TotalCount} ({SkippedCount} skipped)",
+            collectionsProcessed,
+            collections.Count,
+            collectionsSkipped);
     }
 
-    private async Task ProcessCollection(BoxSet collection, bool fullRefresh, bool subtitleTags, CancellationToken cancellationToken)
+    private async Task<bool> ProcessCollection(BoxSet collection, bool fullRefresh, bool subtitleTags, CancellationToken cancellationToken)
     {
         // Alternative approach using GetLinkedChildren if the above doesn't work:
         var collectionItems = collection.GetLinkedChildren()
@@ -771,12 +800,8 @@ public class LanguageTagsManager : IHostedService, IDisposable
         if (collectionItems.Count == 0)
         {
             _logger.LogWarning("No movies found in box set {BoxSetName}", collection.Name);
-            return;
+            return false;
         }
-
-        // Remove existing language tags
-        _tagService.RemoveLanguageTags(collection, TagType.Audio);
-        _tagService.RemoveLanguageTags(collection, TagType.Subtitle);
 
         // Get language tags from all movies in the box set
         var collectionAudioLanguages = new List<string>();
@@ -801,31 +826,31 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
         // Add language tags to the box set
         collectionAudioLanguages = collectionAudioLanguages.Distinct().ToList();
-        collectionAudioLanguages = await Task.Run(() => _tagService.AddLanguageTags(collection, collectionAudioLanguages, TagType.Audio, convertFromIso: false), cancellationToken).ConfigureAwait(false);
-        if (collectionAudioLanguages.Count > 0)
-        {
-            _logger.LogInformation("Added audio tags for {BoxSetName}: {Languages}", collection.Name, string.Join(", ", collectionAudioLanguages));
-        }
-
-        if (!subtitleTags) // skip subtitle tags
-        {
-            return;
-        }
+        var addedAudioLanguages = await Task.Run(() => _tagService.AddLanguageTags(collection, collectionAudioLanguages, TagType.Audio, convertFromIso: false), cancellationToken).ConfigureAwait(false);
 
         // Strip subtitle language prefix
         collectionSubtitleLanguages = _tagService.StripTagPrefix(collectionSubtitleLanguages, TagType.Subtitle);
 
         // Add subtitle language tags to the box set
         collectionSubtitleLanguages = collectionSubtitleLanguages.Distinct().ToList();
-        if (collectionSubtitleLanguages.Count > 0)
+        List<string> addedSubtitleLanguages = new List<string>();
+        if (subtitleTags && collectionSubtitleLanguages.Count > 0)
         {
-            collectionSubtitleLanguages = await Task.Run(() => _tagService.AddLanguageTags(collection, collectionSubtitleLanguages, TagType.Subtitle, convertFromIso: false), cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Added subtitle tags for {BoxSetName}: {Languages}", collection.Name, string.Join(", ", collectionSubtitleLanguages));
+            addedSubtitleLanguages = await Task.Run(() => _tagService.AddLanguageTags(collection, collectionSubtitleLanguages, TagType.Subtitle, convertFromIso: false), cancellationToken).ConfigureAwait(false);
         }
-        else
+
+        // Only log if new tags were actually added
+        if (addedAudioLanguages.Count > 0 || addedSubtitleLanguages.Count > 0)
         {
-            _logger.LogWarning("No subtitle information found for {BoxSetName}", collection.Name);
+            _logger.LogInformation(
+                "Added languages for collection {BoxSetName} - Audio: [{AudioLanguages}], Subtitles: [{SubtitleLanguages}]",
+                collection.Name,
+                addedAudioLanguages.Count > 0 ? string.Join(", ", addedAudioLanguages) : "none",
+                addedSubtitleLanguages.Count > 0 ? string.Join(", ", addedSubtitleLanguages) : "none");
+            return true;
         }
+
+        return false;
     }
 
     /// <summary>
@@ -845,7 +870,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
         // Process movies
         var movies = _queryService.GetMoviesFromLibrary();
-        int processedMovies = await ProcessItemsAsync(
+        var (processedMovies, skippedMovies) = await ProcessItemsAsync(
             movies,
             async (movie, ct) => await ProcessMovieExternalSubtitles(movie, ct).ConfigureAwait(false),
             synchronously).ConfigureAwait(false);
@@ -853,37 +878,39 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
         // Process collections
         var collections = _queryService.GetBoxSetsFromLibrary();
-        await ProcessItemsAsync(
+        var (processedCollections, skippedCollections) = await ProcessItemsAsync(
             collections,
             async (collection, ct) => await ProcessCollectionExternalSubtitles(collection, ct).ConfigureAwait(false),
             synchronously).ConfigureAwait(false);
-        _logger.LogInformation("Processed {TotalCollections} collections", collections.Count);
+        _logger.LogInformation("Processed {ProcessedCollections} of {TotalCollections} collections", processedCollections, collections.Count);
 
         // Process series
         var seriesList = _queryService.GetSeriesFromLibrary();
-        var processedSeries = await ProcessItemsAsync(
+        var (processedSeries, skippedSeries) = await ProcessItemsAsync(
             seriesList,
             async (seriesBaseItem, ct) =>
             {
                 if (seriesBaseItem is Series series)
                 {
                     await ProcessSeriesExternalSubtitles(series, ct).ConfigureAwait(false);
+                    return true;
                 }
                 else
                 {
                     _logger.LogWarning("Series is null!");
+                    return false;
                 }
             },
             synchronously).ConfigureAwait(false);
         _logger.LogInformation("Processed {ProcessedSeries} of {TotalSeries} series", processedSeries, seriesList.Count);
     }
 
-    private async Task ProcessMovieExternalSubtitles(Movie movie, CancellationToken cancellationToken)
+    private async Task<bool> ProcessMovieExternalSubtitles(Movie movie, CancellationToken cancellationToken)
     {
         if (movie is not Video video)
         {
             _logger.LogWarning("Movie is null!");
-            return;
+            return false;
         }
 
         // Check if the video has subtitle language tags from external files
@@ -892,14 +919,16 @@ public class LanguageTagsManager : IHostedService, IDisposable
         {
             subtitleLanguages = await Task.Run(() => _tagService.AddLanguageTags(video, subtitleLanguages, TagType.Subtitle, convertFromIso: true), cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Added external subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguages));
+            return true;
         }
         else
         {
             _logger.LogWarning("No external subtitle information found for VIDEO {VideoName}", video.Name);
+            return false;
         }
     }
 
-    private async Task ProcessCollectionExternalSubtitles(BoxSet collection, CancellationToken cancellationToken)
+    private async Task<bool> ProcessCollectionExternalSubtitles(BoxSet collection, CancellationToken cancellationToken)
     {
         var collectionItems = _libraryManager.QueryItems(new InternalItemsQuery
         {
@@ -911,7 +940,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
         if (collectionItems.Count == 0)
         {
             _logger.LogWarning("No movies found in box set {BoxSetName}", collection.Name);
-            return;
+            return false;
         }
 
         var collectionSubtitleLanguages = new List<string>();
@@ -933,10 +962,12 @@ public class LanguageTagsManager : IHostedService, IDisposable
         {
             collectionSubtitleLanguages = await Task.Run(() => _tagService.AddLanguageTags(collection, collectionSubtitleLanguages, TagType.Subtitle, convertFromIso: true), cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Added external subtitle tags for {BoxSetName}: {Languages}", collection.Name, string.Join(", ", collectionSubtitleLanguages));
+            return true;
         }
         else
         {
             _logger.LogWarning("No external subtitle information found for {BoxSetName}", collection.Name);
+            return false;
         }
     }
 
