@@ -37,6 +37,11 @@ public class LanguageTagService
     private readonly LanguageConversionService _conversionService;
     private static readonly char[] Separator = new[] { ',' };
 
+    // Cached prefixes to avoid repeated config queries
+    private string? _cachedAudioPrefix;
+    private string? _cachedSubtitlePrefix;
+    private List<string>? _cachedWhitelist;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="LanguageTagService"/> class.
     /// </summary>
@@ -58,11 +63,33 @@ public class LanguageTagService
 
     /// <summary>
     /// Gets the language tag prefix for the specified tag type.
+    /// Uses cached values to avoid repeated configuration queries.
     /// </summary>
     /// <param name="type">The tag type.</param>
     /// <returns>The language tag prefix.</returns>
     private string GetLanguageTagPrefix(TagType type)
-        => type == TagType.Audio ? _configService.GetAudioLanguageTagPrefix() : _configService.GetSubtitleLanguageTagPrefix();
+    {
+        if (type == TagType.Audio)
+        {
+            if (_cachedAudioPrefix == null)
+            {
+                _cachedAudioPrefix = _configService.GetAudioLanguageTagPrefix();
+                _logger.LogInformation("Cached audio language tag prefix: '{Prefix}'", _cachedAudioPrefix);
+            }
+
+            return _cachedAudioPrefix;
+        }
+        else
+        {
+            if (_cachedSubtitlePrefix == null)
+            {
+                _cachedSubtitlePrefix = _configService.GetSubtitleLanguageTagPrefix();
+                _logger.LogInformation("Cached subtitle language tag prefix: '{Prefix}'", _cachedSubtitlePrefix);
+            }
+
+            return _cachedSubtitlePrefix;
+        }
+    }
 
     /// <summary>
     /// Checks if an item has language tags of the specified type.
@@ -188,24 +215,36 @@ public class LanguageTagService
 
     /// <summary>
     /// Parses and validates the whitelist configuration.
+    /// Uses cached value to avoid repeated parsing.
     /// </summary>
     /// <returns>List of valid language codes.</returns>
     private List<string> ParseWhitelist()
     {
+        if (_cachedWhitelist != null)
+        {
+            return _cachedWhitelist;
+        }
+
         var whitelist = _configService.WhitelistLanguageTags;
         if (string.IsNullOrWhiteSpace(whitelist))
         {
-            return new List<string>();
+            _cachedWhitelist = new List<string>();
+            _logger.LogInformation("Cached whitelist: empty (no filtering will be applied)");
+            return _cachedWhitelist;
         }
 
         var undArray = new[] { "und" };
-        return whitelist.Split(Separator, StringSplitOptions.RemoveEmptyEntries)
+        _cachedWhitelist = whitelist.Split(Separator, StringSplitOptions.RemoveEmptyEntries)
             .Select(lang => lang.Trim())
             .Where(lang => lang.Length == 3) // Valid ISO 639-2/B codes
             .Distinct()
             .Concat(undArray) // Always include "undefined"
             .Distinct()
             .ToList();
+
+        _logger.LogInformation("Cached whitelist: {Count} language codes ({Languages})", _cachedWhitelist.Count, string.Join(", ", _cachedWhitelist));
+
+        return _cachedWhitelist;
     }
 
     /// <summary>

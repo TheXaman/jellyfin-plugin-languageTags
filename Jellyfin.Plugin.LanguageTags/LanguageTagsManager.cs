@@ -112,23 +112,32 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
     /// <param name="video">The video item to check.</param>
     /// <param name="fullScan">Whether this is a full scan.</param>
     /// <param name="subtitleTags">Whether subtitle processing is enabled.</param>
+    /// <param name="getExistingTags">Whether to get existing tags or not.</param>
     /// <returns>Tuple indicating if video should be processed and any existing languages found.</returns>
     private (bool ShouldProcess, List<string> ExistingAudio, List<string> ExistingSubtitle) CheckAndPrepareVideoForProcessing(
-        Video video, bool fullScan, bool subtitleTags)
+        Video video, bool fullScan, bool subtitleTags, bool getExistingTags = false)
     {
         bool shouldProcess = fullScan;
         var existingAudio = new List<string>();
         var existingSubtitle = new List<string>();
 
+        if (fullScan)
+        {
+            _tagService.RemoveLanguageTags(video, TagType.Audio);
+            if (subtitleTags)
+            {
+                _tagService.RemoveLanguageTags(video, TagType.Subtitle);
+            }
+
+            shouldProcess = true;
+            return (shouldProcess, existingAudio, existingSubtitle);
+        }
+
         // Check audio tags
         var hasAudioTags = _tagService.HasLanguageTags(video, TagType.Audio);
         if (hasAudioTags)
         {
-            if (fullScan)
-            {
-                _tagService.RemoveLanguageTags(video, TagType.Audio);
-            }
-            else
+            if (getExistingTags)
             {
                 var audioNames = _tagService.StripTagPrefix(_tagService.GetLanguageTags(video, TagType.Audio), TagType.Audio);
                 existingAudio = _conversionService.ConvertLanguageNamesToIso(audioNames);
@@ -145,11 +154,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             var hasSubtitleTags = _tagService.HasLanguageTags(video, TagType.Subtitle);
             if (hasSubtitleTags)
             {
-                if (fullScan)
-                {
-                    _tagService.RemoveLanguageTags(video, TagType.Subtitle);
-                }
-                else
+                if (getExistingTags)
                 {
                     var subtitleNames = _tagService.StripTagPrefix(_tagService.GetLanguageTags(video, TagType.Subtitle), TagType.Subtitle);
                     existingSubtitle = _conversionService.ConvertLanguageNamesToIso(subtitleNames);
@@ -484,7 +489,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             return false;
         }
 
-        var (shouldProcess, existingAudio, existingSubtitle) = CheckAndPrepareVideoForProcessing(video, fullScan, subtitleTags);
+        var (shouldProcess, _, _) = CheckAndPrepareVideoForProcessing(video, fullScan, subtitleTags, false);
 
         if (shouldProcess)
         {
@@ -561,7 +566,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
         }
 
         var (shouldProcess, existingAudio, existingSubtitle) =
-            CheckAndPrepareVideoForProcessing(video, fullScan, subtitleTags);
+            CheckAndPrepareVideoForProcessing(video, fullScan, subtitleTags, true);
 
         if (shouldProcess)
         {
