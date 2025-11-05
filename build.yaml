@@ -12,4 +12,4 @@ owner: "TheXaman"
 imageUrl: "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png"
 artifacts:
   - "Jellyfin.Plugin.LanguageTags.dll"
-changelog: '["Refactored language tagging system with performance optimizations"]'
+changelog: '["Update build.yaml and manifest-preview.json for preview version 0.5.0.2-preview","Refactored language tagging system with performance optimizations"]'

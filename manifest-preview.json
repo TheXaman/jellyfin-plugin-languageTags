@@ -10,6 +10,14 @@
     "versions": [
       {
         "version": "0.5.0.2",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Update build.yaml and manifest-preview.json for preview version 0.5.0.2-preview\n- Refactored language tagging system with performance optimizations",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.5.0.2-preview/language-tags_0.5.0.2.zip",
+        "checksum": "8193b77e0639c6c133be4d0a9a29aa66",
+        "timestamp": "2025-11-05T19:20:24Z"
+      },
+      {
+        "version": "0.5.0.2",
         "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Refactored language tagging system with performance optimizations",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.5.0.2-preview/language-tags_0.5.0.2.zip",
