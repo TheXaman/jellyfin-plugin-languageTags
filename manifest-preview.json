@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.5.0.1",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.5.0.1\n- fix: episode tags not being saved and updated seasons and series to work with language names\n- refactor: reduced calls to update database\n- Update build.yaml and manifest-preview.json for preview version 0.5.0.0-preview\n- Update build.yaml and manifest-preview.json for preview version 0.5.0.0-preview\n- Bump version to 0.5.0.0\n- refactor: removed dead code\n- refactor: inlined function\n- refactor: removed dead external subtitle code\n- feat: split ProcessSeries into sub function for seasons and episodes\n- feat: improved logging statements and reduced frequency\n- feat: enhance item processing to track skipped items and improve logging\n- feat: add logging for new languageTags\n- Refactor language tag services for improved readability and maintainability\n- feat: Implement language tagging services and configuration management",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.5.0.1-preview/language-tags_0.5.0.1.zip",
+        "checksum": "3493d6cdd1d59bfc55e5f85e9034d663",
+        "timestamp": "2025-11-05T14:53:01Z"
+      },
+      {
         "version": "0.5.0.0",
         "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Update build.yaml and manifest-preview.json for preview version 0.5.0.0-preview\n- Bump version to 0.5.0.0\n- refactor: removed dead code\n- refactor: inlined function\n- refactor: removed dead external subtitle code\n- feat: split ProcessSeries into sub function for seasons and episodes\n- feat: improved logging statements and reduced frequency\n- feat: enhance item processing to track skipped items and improve logging\n- feat: add logging for new languageTags\n- Refactor language tag services for improved readability and maintainability\n- feat: Implement language tagging services and configuration management",
         "targetAbi": "10.11.0.0",
