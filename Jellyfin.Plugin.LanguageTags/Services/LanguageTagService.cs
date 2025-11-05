@@ -114,6 +114,9 @@ public class LanguageTagService
     /// <returns>List of added languages.</returns>
     public List<string> AddLanguageTags(BaseItem item, List<string> languages, TagType type, bool convertFromIso)
     {
+        // Make sure languages are unique
+        languages = languages.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
         if (convertFromIso)
         {
             languages = FilterOutLanguages(item, languages);
