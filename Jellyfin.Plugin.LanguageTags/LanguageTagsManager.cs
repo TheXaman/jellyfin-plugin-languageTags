@@ -567,6 +567,11 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
         {
             var (audioLanguages, subtitleLanguages) =
                 await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
+
+            // Save episode to repository
+            await episode.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken)
+                .ConfigureAwait(false);
+
             return (audioLanguages, subtitleLanguages, true);
         }
 
@@ -635,7 +640,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
         if (seasonSubtitleLanguages.Count > 0 && subtitleTags)
         {
             seasonSubtitleLanguages = await Task.Run(
-                () => _tagService.AddLanguageTags(season, seasonSubtitleLanguages, TagType.Subtitle, convertFromIso: true),
+                () => _tagService.AddLanguageTags(season, seasonSubtitleLanguages, TagType.Subtitle, convertFromIso: false),
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -691,7 +696,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
         if (seriesSubtitleLanguages.Count > 0 && subtitleTags)
         {
             seriesSubtitleLanguages = await Task.Run(
-                () => _tagService.AddLanguageTags(series, seriesSubtitleLanguages, TagType.Subtitle, convertFromIso: true),
+                () => _tagService.AddLanguageTags(series, seriesSubtitleLanguages, TagType.Subtitle, convertFromIso: false),
                 cancellationToken).ConfigureAwait(false);
         }
 
