@@ -525,11 +525,14 @@ public class LanguageTagsManager : IHostedService, IDisposable
         if (shouldProcess)
         {
             var (audioLanguages, subtitleLanguages) = await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
-            // Merge with existing languages if not full scan
-            if (!fullScan)
+
+            if (audioLanguages.Count > 0 || subtitleLanguages.Count > 0)
             {
-                audioLanguages.AddRange(existingAudio);
-                subtitleLanguages.AddRange(existingSubtitle);
+                _logger.LogInformation(
+                    "Added languages for movie {MovieName} - Audio: [{AudioLanguages}], Subtitles: [{SubtitleLanguages}]",
+                    movie.Name,
+                    audioLanguages.Count > 0 ? string.Join(", ", audioLanguages) : "none",
+                    subtitleLanguages.Count > 0 ? string.Join(", ", subtitleLanguages) : "none");
             }
         }
     }
