@@ -26,18 +26,14 @@ public class LanguageTagsController : ControllerBase, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="LanguageTagsController"/> class.
     /// </summary>
-    /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
-    /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{LanguageTagsController}"/> interface.</param>
-    /// <param name="languageTagsLogger">Instance of the <see cref="ILogger{LanguageTagsManager}"/> interface.</param>
+    /// <param name="languageTagsManager">Instance of the <see cref="LanguageTagsManager"/> class.</param>
     public LanguageTagsController(
-        ILibraryManager libraryManager,
-        ICollectionManager collectionManager,
         ILogger<LanguageTagsController> logger,
-        ILogger<LanguageTagsManager> languageTagsLogger)
+        LanguageTagsManager languageTagsManager)
     {
-        _languageTagsManager = new LanguageTagsManager(libraryManager, collectionManager, languageTagsLogger);
         _logger = logger;
+        _languageTagsManager = languageTagsManager;
     }
 
     /// <summary>
