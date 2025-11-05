@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.5.0.0",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.5.0.0\n- refactor: removed dead code\n- refactor: inlined function\n- refactor: removed dead external subtitle code\n- feat: split ProcessSeries into sub function for seasons and episodes\n- feat: improved logging statements and reduced frequency\n- feat: enhance item processing to track skipped items and improve logging\n- feat: add logging for new languageTags\n- Refactor language tag services for improved readability and maintainability\n- feat: Implement language tagging services and configuration management\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.7-preview\n- Bump version to 0.4.4.7\n- feat: enhance language tag processing with ISO code conversion and reduce logging verbosity",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.5.0.0-preview/language-tags_0.5.0.0.zip",
+        "checksum": "c0fe5ffbf8ccb5a2fa6aec3fd999d90e",
+        "timestamp": "2025-11-05T13:13:43Z"
+      },
+      {
         "version": "0.4.4.7",
         "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.4.4.7\n- feat: enhance language tag processing with ISO code conversion and reduce logging verbosity\n- Update build.yaml and manifest-preview.json for preview version 0.4.4.6-preview\n- Bump version to 0.4.4.6\n- feat: reduced logging verbosity in LanguageTagsManager and add episode processing summary\n- feat: add fallback for series where episodes have the seriesId as parentId instead of the seasonId refactor: reduce logging verbosity in LanguageTagsManager",
         "targetAbi": "10.11.0.0",
