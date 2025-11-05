@@ -10,6 +10,14 @@
     "versions": [
       {
         "version": "0.5.0.2",
+        "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Refactored language tagging system with performance optimizations",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.5.0.2-preview/language-tags_0.5.0.2.zip",
+        "checksum": "c25984102dd7530658df608b2451d3e9",
+        "timestamp": "2025-11-05T18:52:19Z"
+      },
+      {
+        "version": "0.5.0.2",
         "changelog": "⚠️ PREVIEW RELEASE - For testing only\\n\\n- Bump version to 0.5.0.2\n- feat: add caching for language tag prefixes and whitelist to improve performance\n- fix: updated seasons and series to get language tags\n- Update build.yaml and manifest-preview.json for preview version 0.5.0.1-preview\n- Bump version to 0.5.0.1\n- fix: episode tags not being saved and updated seasons and series to work with language names\n- refactor: reduced calls to update database\n- Update build.yaml and manifest-preview.json for preview version 0.5.0.0-preview\n- Update build.yaml and manifest-preview.json for preview version 0.5.0.0-preview\n- Bump version to 0.5.0.0\n- refactor: removed dead code\n- refactor: inlined function\n- refactor: removed dead external subtitle code\n- feat: split ProcessSeries into sub function for seasons and episodes\n- feat: improved logging statements and reduced frequency\n- feat: enhance item processing to track skipped items and improve logging\n- feat: add logging for new languageTags\n- Refactor language tag services for improved readability and maintainability",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.5.0.2-preview/language-tags_0.5.0.2.zip",
