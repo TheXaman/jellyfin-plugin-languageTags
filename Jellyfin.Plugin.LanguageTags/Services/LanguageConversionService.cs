@@ -30,22 +30,29 @@ public class LanguageConversionService
     /// <returns>The 3-letter ISO 639-2 language code.</returns>
     public string ConvertToThreeLetterIsoCode(string languageCode)
     {
-        // If it's already a 3-letter code, return as-is
         if (languageCode.Length == 3)
         {
             return languageCode;
         }
 
-        // If it's a 2-letter code, try to get the corresponding 3-letter code
         if (languageCode.Length == 2 && LanguageData.TryGetLanguageInfo(languageCode, out var languageInfo) && languageInfo != null)
         {
-            // Prefer Iso6392 (3-letter code), but fall back to Iso6392B if needed
-            return !string.IsNullOrEmpty(languageInfo.Iso6392) ? languageInfo.Iso6392 :
-                   !string.IsNullOrEmpty(languageInfo.Iso6392B) ? languageInfo.Iso6392B : languageCode;
+            return GetPreferredIsoCode(languageInfo, languageCode);
         }
 
-        // If we can't convert it, return the original code
         return languageCode;
+    }
+
+    /// <summary>
+    /// Gets the preferred ISO code from language info, with fallback.
+    /// </summary>
+    /// <param name="languageInfo">The language info.</param>
+    /// <param name="fallback">Fallback value if no ISO code found.</param>
+    /// <returns>The preferred ISO code.</returns>
+    private static string GetPreferredIsoCode(LanguageInfo languageInfo, string fallback)
+    {
+        return !string.IsNullOrEmpty(languageInfo.Iso6392) ? languageInfo.Iso6392 :
+               !string.IsNullOrEmpty(languageInfo.Iso6392B) ? languageInfo.Iso6392B : fallback;
     }
 
     /// <summary>
@@ -55,23 +62,7 @@ public class LanguageConversionService
     /// <returns>List of language names.</returns>
     public List<string> ConvertIsoToLanguageNames(List<string> isoCodes)
     {
-        var languageNames = new List<string>();
-
-        foreach (var isoCode in isoCodes)
-        {
-            if (LanguageData.TryGetLanguageInfo(isoCode, out var languageInfo) && languageInfo != null && !string.IsNullOrWhiteSpace(languageInfo.Name))
-            {
-                languageNames.Add(languageInfo.Name);
-            }
-            else
-            {
-                // Fallback to ISO code if name not found
-                _logger.LogWarning("Could not find language name for ISO code '{IsoCode}', using code as fallback", isoCode);
-                languageNames.Add(isoCode);
-            }
-        }
-
-        return languageNames;
+        return isoCodes.Select(ConvertSingleIsoToLanguageName).ToList();
     }
 
     /// <summary>
@@ -81,44 +72,57 @@ public class LanguageConversionService
     /// <returns>List of ISO codes.</returns>
     public List<string> ConvertLanguageNamesToIso(List<string> languageNames)
     {
-        var isoCodes = new List<string>();
+        return languageNames.Select(ConvertSingleLanguageNameToIso).ToList();
+    }
 
-        foreach (var languageName in languageNames)
+    /// <summary>
+    /// Converts a single ISO code to its corresponding language name.
+    /// </summary>
+    /// <param name="isoCode">The ISO language code.</param>
+    /// <returns>The language name or the original code if not found.</returns>
+    private string ConvertSingleIsoToLanguageName(string isoCode)
+    {
+        if (LanguageData.TryGetLanguageInfo(isoCode, out var languageInfo) &&
+            languageInfo != null && !string.IsNullOrWhiteSpace(languageInfo.Name))
         {
-            // Try to find the language by name by searching through all entries
-            LanguageInfo? foundLanguage = null;
-            foreach (var kvp in LanguageData.LanguageDictionary)
-            {
-                if (kvp.Value.Name.Equals(languageName, StringComparison.OrdinalIgnoreCase))
-                {
-                    foundLanguage = kvp.Value;
-                    break;
-                }
-            }
-
-            if (foundLanguage != null)
-            {
-                // Prefer Iso6392 (3-letter code), but fall back to Iso6392B if needed
-                var isoCode = !string.IsNullOrEmpty(foundLanguage.Iso6392) ? foundLanguage.Iso6392 :
-                              !string.IsNullOrEmpty(foundLanguage.Iso6392B) ? foundLanguage.Iso6392B : languageName;
-                isoCodes.Add(isoCode);
-            }
-            else
-            {
-                // If it's already an ISO code (3 letters), keep it
-                if (languageName.Length == 3)
-                {
-                    isoCodes.Add(languageName);
-                }
-                else
-                {
-                    // Fallback to the original value if we can't convert it
-                    _logger.LogWarning("Could not find ISO code for language name '{LanguageName}', using name as fallback", languageName);
-                    isoCodes.Add(languageName);
-                }
-            }
+            return languageInfo.Name;
         }
 
-        return isoCodes;
+        _logger.LogWarning("Could not find language name for ISO code '{IsoCode}', using code as fallback", isoCode);
+        return isoCode;
+    }
+
+    /// <summary>
+    /// Converts a single language name to its corresponding ISO code.
+    /// </summary>
+    /// <param name="languageName">The language name.</param>
+    /// <returns>The ISO code or the original name if not found.</returns>
+    private string ConvertSingleLanguageNameToIso(string languageName)
+    {
+        var foundLanguage = FindLanguageByName(languageName);
+        if (foundLanguage != null)
+        {
+            return GetPreferredIsoCode(foundLanguage, languageName);
+        }
+
+        // If it's already an ISO code (3 letters), keep it
+        if (languageName.Length == 3)
+        {
+            return languageName;
+        }
+
+        _logger.LogWarning("Could not find ISO code for language name '{LanguageName}', using name as fallback", languageName);
+        return languageName;
+    }
+
+    /// <summary>
+    /// Finds a language by name from the language dictionary.
+    /// </summary>
+    /// <param name="languageName">The language name to search for.</param>
+    /// <returns>The found language info or null if not found.</returns>
+    private static LanguageInfo? FindLanguageByName(string languageName)
+    {
+        return LanguageData.LanguageDictionary.Values
+            .FirstOrDefault(lang => lang.Name.Equals(languageName, StringComparison.OrdinalIgnoreCase));
     }
 }
