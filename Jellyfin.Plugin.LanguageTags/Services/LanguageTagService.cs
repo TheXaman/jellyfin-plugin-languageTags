@@ -137,22 +137,9 @@ public class LanguageTagService
             }
         }
 
-        UpdateItemInRepository(item);
+        // Note: UpdateItemInRepository is no longer called here
+        // Caller is responsible for calling UpdateToRepositoryAsync after all tag modifications
         return newAddedLanguages;
-    }
-
-    /// <summary>
-    /// Updates an item in the repository.
-    /// </summary>
-    /// <param name="item">The item to update.</param>
-    private void UpdateItemInRepository(BaseItem item)
-    {
-        var parent = item.GetParent();
-        _libraryManager.UpdateItemAsync(
-            item: item,
-            parent: parent,
-            updateReason: ItemUpdateType.MetadataEdit,
-            cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
     }
 
     /// <summary>

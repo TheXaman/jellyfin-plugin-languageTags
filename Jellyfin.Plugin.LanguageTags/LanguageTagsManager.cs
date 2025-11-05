@@ -781,9 +781,12 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             addedSubtitleLanguages = await Task.Run(() => _tagService.AddLanguageTags(collection, collectionSubtitleLanguages, TagType.Subtitle, convertFromIso: false), cancellationToken).ConfigureAwait(false);
         }
 
+        // Save collection to repository only once after all tag modifications
         // Only log if new tags were actually added
         if (addedAudioLanguages.Count > 0 || addedSubtitleLanguages.Count > 0)
         {
+            await collection.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
+
             _logger.LogInformation(
                 "COLLECTION - {CollectionName} - audio: {Audio} - subtitles: {Subtitles}",
                 collection.Name,
@@ -889,6 +892,9 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             {
                 _logger.LogWarning("No subtitle information found for VIDEO {VideoName}", video.Name);
             }
+
+            // Save video to repository only once after all tag modifications
+            await video.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
