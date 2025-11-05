@@ -99,7 +99,9 @@ public class LanguageConversionService
     /// <returns>The ISO code or the original name if not found.</returns>
     private string ConvertSingleLanguageNameToIso(string languageName)
     {
-        var foundLanguage = FindLanguageByName(languageName);
+        var foundLanguage = LanguageData.LanguageDictionary.Values
+            .FirstOrDefault(lang => lang.Name.Equals(languageName, StringComparison.OrdinalIgnoreCase));
+
         if (foundLanguage != null)
         {
             return GetPreferredIsoCode(foundLanguage, languageName);
@@ -113,16 +115,5 @@ public class LanguageConversionService
 
         _logger.LogWarning("Could not find ISO code for language name '{LanguageName}', using name as fallback", languageName);
         return languageName;
-    }
-
-    /// <summary>
-    /// Finds a language by name from the language dictionary.
-    /// </summary>
-    /// <param name="languageName">The language name to search for.</param>
-    /// <returns>The found language info or null if not found.</returns>
-    private static LanguageInfo? FindLanguageByName(string languageName)
-    {
-        return LanguageData.LanguageDictionary.Values
-            .FirstOrDefault(lang => lang.Name.Equals(languageName, StringComparison.OrdinalIgnoreCase));
     }
 }
