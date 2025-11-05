@@ -37,11 +37,6 @@ public class LanguageTagService
     private readonly LanguageConversionService _conversionService;
     private static readonly char[] Separator = new[] { ',' };
 
-    // Cached prefixes to avoid repeated config queries
-    private string? _cachedAudioPrefix;
-    private string? _cachedSubtitlePrefix;
-    private List<string>? _cachedWhitelist;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="LanguageTagService"/> class.
     /// </summary>
@@ -62,44 +57,16 @@ public class LanguageTagService
     }
 
     /// <summary>
-    /// Gets the language tag prefix for the specified tag type.
-    /// Uses cached values to avoid repeated configuration queries.
-    /// </summary>
-    /// <param name="type">The tag type.</param>
-    /// <returns>The language tag prefix.</returns>
-    private string GetLanguageTagPrefix(TagType type)
-    {
-        if (type == TagType.Audio)
-        {
-            if (_cachedAudioPrefix == null)
-            {
-                _cachedAudioPrefix = _configService.GetAudioLanguageTagPrefix();
-                _logger.LogInformation("Cached audio language tag prefix: '{Prefix}'", _cachedAudioPrefix);
-            }
-
-            return _cachedAudioPrefix;
-        }
-        else
-        {
-            if (_cachedSubtitlePrefix == null)
-            {
-                _cachedSubtitlePrefix = _configService.GetSubtitleLanguageTagPrefix();
-                _logger.LogInformation("Cached subtitle language tag prefix: '{Prefix}'", _cachedSubtitlePrefix);
-            }
-
-            return _cachedSubtitlePrefix;
-        }
-    }
-
-    /// <summary>
     /// Checks if an item has language tags of the specified type.
     /// </summary>
     /// <param name="item">The item to check.</param>
     /// <param name="type">The tag type (Audio or Subtitle).</param>
+    /// <param name="audioPrefix">The audio prefix to use.</param>
+    /// <param name="subtitlePrefix">The subtitle prefix to use.</param>
     /// <returns>True if the item has language tags of the specified type.</returns>
-    public bool HasLanguageTags(BaseItem item, TagType type)
+    public bool HasLanguageTags(BaseItem item, TagType type, string audioPrefix, string subtitlePrefix)
     {
-        var prefix = GetLanguageTagPrefix(type);
+        var prefix = type == TagType.Audio ? audioPrefix : subtitlePrefix;
         return item.Tags.Any(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -108,10 +75,12 @@ public class LanguageTagService
     /// </summary>
     /// <param name="item">The item to get tags from.</param>
     /// <param name="type">The tag type (Audio or Subtitle).</param>
+    /// <param name="audioPrefix">The audio prefix to use.</param>
+    /// <param name="subtitlePrefix">The subtitle prefix to use.</param>
     /// <returns>List of language tags.</returns>
-    public List<string> GetLanguageTags(BaseItem item, TagType type)
+    public List<string> GetLanguageTags(BaseItem item, TagType type, string audioPrefix, string subtitlePrefix)
     {
-        var prefix = GetLanguageTagPrefix(type);
+        var prefix = type == TagType.Audio ? audioPrefix : subtitlePrefix;
         return item.Tags.Where(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
@@ -120,9 +89,11 @@ public class LanguageTagService
     /// </summary>
     /// <param name="item">The item to remove tags from.</param>
     /// <param name="type">The tag type (Audio or Subtitle).</param>
-    public void RemoveLanguageTags(BaseItem item, TagType type)
+    /// <param name="audioPrefix">The audio prefix to use.</param>
+    /// <param name="subtitlePrefix">The subtitle prefix to use.</param>
+    public void RemoveLanguageTags(BaseItem item, TagType type, string audioPrefix, string subtitlePrefix)
     {
-        var prefix = GetLanguageTagPrefix(type);
+        var prefix = type == TagType.Audio ? audioPrefix : subtitlePrefix;
         var tagsToRemove = item.Tags.Where(tag => tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
 
         if (tagsToRemove.Count > 0)
@@ -132,26 +103,29 @@ public class LanguageTagService
     }
 
     /// <summary>
-    /// Adds language tags to an item.
+    /// Adds language tags to an item with provided prefixes and whitelist.
     /// </summary>
     /// <param name="item">The item to add tags to.</param>
     /// <param name="languages">List of languages.</param>
     /// <param name="type">The tag type (Audio or Subtitle).</param>
     /// <param name="convertFromIso">True to convert ISO codes to language names, false if already language names.</param>
+    /// <param name="audioPrefix">The audio prefix to use.</param>
+    /// <param name="subtitlePrefix">The subtitle prefix to use.</param>
+    /// <param name="whitelist">The whitelist to use for filtering.</param>
     /// <returns>List of added languages.</returns>
-    public List<string> AddLanguageTags(BaseItem item, List<string> languages, TagType type, bool convertFromIso)
+    public List<string> AddLanguageTags(BaseItem item, List<string> languages, TagType type, bool convertFromIso, string audioPrefix, string subtitlePrefix, List<string> whitelist)
     {
         // Make sure languages are unique
         languages = languages.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         if (convertFromIso)
         {
-            languages = FilterOutLanguages(item, languages);
+            languages = FilterOutLanguages(item, languages, whitelist);
             languages = _conversionService.ConvertIsoToLanguageNames(languages);
         }
 
         languages = languages.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        var prefix = GetLanguageTagPrefix(type);
+        var prefix = type == TagType.Audio ? audioPrefix : subtitlePrefix;
 
         var newAddedLanguages = new List<string>();
         foreach (var languageName in languages)
@@ -164,8 +138,6 @@ public class LanguageTagService
             }
         }
 
-        // Note: UpdateItemInRepository is no longer called here
-        // Caller is responsible for calling UpdateToRepositoryAsync after all tag modifications
         return newAddedLanguages;
     }
 
@@ -174,10 +146,12 @@ public class LanguageTagService
     /// </summary>
     /// <param name="tags">The tags to strip the prefix from.</param>
     /// <param name="type">The tag type to get the prefix for.</param>
+    /// <param name="audioPrefix">The audio prefix to use.</param>
+    /// <param name="subtitlePrefix">The subtitle prefix to use.</param>
     /// <returns>List of tags without the prefix.</returns>
-    public List<string> StripTagPrefix(IEnumerable<string> tags, TagType type)
+    public List<string> StripTagPrefix(IEnumerable<string> tags, TagType type, string audioPrefix, string subtitlePrefix)
     {
-        var prefix = GetLanguageTagPrefix(type);
+        var prefix = type == TagType.Audio ? audioPrefix : subtitlePrefix;
         return tags
             .Where(tag => tag.Length > prefix.Length)
             .Select(tag => tag.Substring(prefix.Length))
@@ -185,22 +159,21 @@ public class LanguageTagService
     }
 
     /// <summary>
-    /// Filters out languages based on the whitelist configuration.
+    /// Filters out languages based on provided whitelist.
     /// </summary>
     /// <param name="item">The item being processed (for logging).</param>
     /// <param name="languages">List of language ISO codes to filter.</param>
+    /// <param name="whitelist">The whitelist to use.</param>
     /// <returns>Filtered list of language ISO codes.</returns>
-    public List<string> FilterOutLanguages(BaseItem item, List<string> languages)
+    public List<string> FilterOutLanguages(BaseItem item, List<string> languages, List<string> whitelist)
     {
-        var whitelistArray = ParseWhitelist();
-
-        if (whitelistArray.Count == 0)
+        if (whitelist.Count == 0)
         {
             return languages;
         }
 
-        var filteredOutLanguages = languages.Except(whitelistArray).ToList();
-        var filteredLanguages = languages.Intersect(whitelistArray).ToList();
+        var filteredOutLanguages = languages.Except(whitelist).ToList();
+        var filteredLanguages = languages.Intersect(whitelist).ToList();
 
         if (filteredOutLanguages.Count > 0)
         {
@@ -214,59 +187,49 @@ public class LanguageTagService
     }
 
     /// <summary>
-    /// Parses and validates the whitelist configuration.
-    /// Uses cached value to avoid repeated parsing.
+    /// Parses and validates a whitelist string.
     /// </summary>
+    /// <param name="whitelistString">The whitelist string to parse.</param>
     /// <returns>List of valid language codes.</returns>
-    private List<string> ParseWhitelist()
+    public static List<string> ParseWhitelist(string whitelistString)
     {
-        if (_cachedWhitelist != null)
+        if (string.IsNullOrWhiteSpace(whitelistString))
         {
-            return _cachedWhitelist;
-        }
-
-        var whitelist = _configService.WhitelistLanguageTags;
-        if (string.IsNullOrWhiteSpace(whitelist))
-        {
-            _cachedWhitelist = new List<string>();
-            _logger.LogInformation("Cached whitelist: empty (no filtering will be applied)");
-            return _cachedWhitelist;
+            return new List<string>();
         }
 
         var undArray = new[] { "und" };
-        _cachedWhitelist = whitelist.Split(Separator, StringSplitOptions.RemoveEmptyEntries)
+        return whitelistString.Split(Separator, StringSplitOptions.RemoveEmptyEntries)
             .Select(lang => lang.Trim())
             .Where(lang => lang.Length == 3) // Valid ISO 639-2/B codes
             .Distinct()
             .Concat(undArray) // Always include "undefined"
             .Distinct()
             .ToList();
-
-        _logger.LogInformation("Cached whitelist: {Count} language codes ({Languages})", _cachedWhitelist.Count, string.Join(", ", _cachedWhitelist));
-
-        return _cachedWhitelist;
     }
 
     /// <summary>
-    /// Adds audio language tags to an item, or undefined tag if no languages provided.
+    /// Adds audio language tags to an item, or undefined tag if no languages provided, using provided prefixes and whitelist.
     /// </summary>
     /// <param name="item">The item to add tags to.</param>
     /// <param name="audioLanguages">List of audio language ISO codes.</param>
+    /// <param name="audioPrefix">The audio prefix to use.</param>
+    /// <param name="subtitlePrefix">The subtitle prefix to use.</param>
+    /// <param name="whitelist">The whitelist to use for filtering.</param>
+    /// <param name="disableUndefinedTags">Whether undefined tags are disabled.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of added language ISO codes.</returns>
-    public async Task<List<string>> AddAudioLanguageTagsOrUndefined(BaseItem item, List<string> audioLanguages, CancellationToken cancellationToken)
+    public async Task<List<string>> AddAudioLanguageTagsOrUndefined(BaseItem item, List<string> audioLanguages, string audioPrefix, string subtitlePrefix, List<string> whitelist, bool disableUndefinedTags, CancellationToken cancellationToken)
     {
         if (audioLanguages.Count > 0)
         {
-            return await Task.Run(() => AddLanguageTags(item, audioLanguages, TagType.Audio, convertFromIso: true), cancellationToken).ConfigureAwait(false);
+            return await Task.Run(() => AddLanguageTags(item, audioLanguages, TagType.Audio, convertFromIso: true, audioPrefix, subtitlePrefix, whitelist), cancellationToken).ConfigureAwait(false);
         }
 
-        var disableUndTags = _configService.DisableUndefinedLanguageTags;
-        if (!disableUndTags)
+        if (!disableUndefinedTags)
         {
-            await Task.Run(() => AddLanguageTags(item, new List<string> { "und" }, TagType.Audio, convertFromIso: true), cancellationToken).ConfigureAwait(false);
-            var prefix = _configService.GetAudioLanguageTagPrefix();
-            _logger.LogWarning("No audio language information found for {ItemName}, added {Prefix}Undetermined", item.Name, prefix);
+            await Task.Run(() => AddLanguageTags(item, new List<string> { "und" }, TagType.Audio, convertFromIso: true, audioPrefix, subtitlePrefix, whitelist), cancellationToken).ConfigureAwait(false);
+            _logger.LogWarning("No audio language information found for {ItemName}, added {Prefix}Undetermined", item.Name, audioPrefix);
         }
         else
         {
