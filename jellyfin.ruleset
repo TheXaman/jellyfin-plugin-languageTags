@@ -54,6 +54,8 @@
 
         <!-- disable warning CA1014: Mark assemblies with CLSCompliantAttribute -->
         <Rule Id="CA1014" Action="Info" />
+        <!-- disable warning CA1002: Do not expose generic lists -->
+        <Rule Id="CA1002" Action="Info" />
         <!-- disable warning CA1024: Use properties where appropriate -->
         <Rule Id="CA1024" Action="Info" />
         <!-- disable warning CA1031: Do not catch general exception types -->
