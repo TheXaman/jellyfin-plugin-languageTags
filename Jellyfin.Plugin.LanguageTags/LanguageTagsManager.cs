@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
 using Jellyfin.Extensions;
 using Jellyfin.Plugin.LanguageTags.Services;
-using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
@@ -19,10 +18,9 @@ namespace Jellyfin.Plugin.LanguageTags;
 /// <summary>
 /// Class LanguageTagsManager.
 /// </summary>
-public class LanguageTagsManager : IHostedService, IDisposable
+public sealed class LanguageTagsManager : IHostedService, IDisposable
 {
     private readonly ILibraryManager _libraryManager;
-    private readonly ICollectionManager _collectionManager;
     private readonly ILogger<LanguageTagsManager> _logger;
     private readonly ConfigurationService _configService;
     private readonly LanguageConversionService _conversionService;
@@ -34,7 +32,6 @@ public class LanguageTagsManager : IHostedService, IDisposable
     /// Initializes a new instance of the <see cref="LanguageTagsManager"/> class.
     /// </summary>
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
-    /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{LanguageTagsManager}"/> interface.</param>
     /// <param name="configService">Instance of the configuration service.</param>
     /// <param name="conversionService">Instance of the language conversion service.</param>
@@ -43,7 +40,6 @@ public class LanguageTagsManager : IHostedService, IDisposable
     /// <param name="subtitleService">Instance of the subtitle extraction service.</param>
     public LanguageTagsManager(
         ILibraryManager libraryManager,
-        ICollectionManager collectionManager,
         ILogger<LanguageTagsManager> logger,
         ConfigurationService configService,
         LanguageConversionService conversionService,
@@ -52,7 +48,6 @@ public class LanguageTagsManager : IHostedService, IDisposable
         SubtitleExtractionService subtitleService)
     {
         _libraryManager = libraryManager;
-        _collectionManager = collectionManager;
         _logger = logger;
         _configService = configService;
         _conversionService = conversionService;
@@ -906,35 +901,18 @@ public class LanguageTagsManager : IHostedService, IDisposable
     /// <inheritdoc/>
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        // _libraryManager.ItemUpdated += OnLibraryManagerItemUpdated;
-
         return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        // _libraryManager.ItemUpdated -= OnLibraryManagerItemUpdated;
-
         return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        Dispose(true);
         GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Releases unmanaged and - optionally - managed resources.
-    /// </summary>
-    /// <param name="dispose"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-    protected virtual void Dispose(bool dispose)
-    {
-        if (dispose)
-        {
-            // _timer.Dispose();
-        }
     }
 }
