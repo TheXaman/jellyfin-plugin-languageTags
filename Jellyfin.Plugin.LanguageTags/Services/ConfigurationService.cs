@@ -67,46 +67,39 @@ public class ConfigurationService
     /// </summary>
     /// <returns>The validated audio language tag prefix.</returns>
     public string GetAudioLanguageTagPrefix()
-    {
-        var prefix = Config.AudioLanguageTagPrefix;
-        var subtitlePrefix = Config.SubtitleLanguageTagPrefix;
-
-        // Validate prefix: must be at least 3 characters and different from subtitle prefix
-        if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 3)
-        {
-            return "language_";
-        }
-
-        // Ensure audio and subtitle prefixes are different
-        if (!string.IsNullOrWhiteSpace(subtitlePrefix) && prefix.Equals(subtitlePrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogWarning("Audio and subtitle prefixes cannot be identical. Using default audio prefix 'language_'");
-            return "language_";
-        }
-
-        return prefix;
-    }
+        => GetValidatedPrefix(Config.AudioLanguageTagPrefix, Config.SubtitleLanguageTagPrefix, "language_", "audio");
 
     /// <summary>
     /// Gets the validated subtitle language tag prefix.
     /// </summary>
     /// <returns>The validated subtitle language tag prefix.</returns>
     public string GetSubtitleLanguageTagPrefix()
-    {
-        var prefix = Config.SubtitleLanguageTagPrefix;
-        var audioPrefix = Config.AudioLanguageTagPrefix;
+        => GetValidatedPrefix(Config.SubtitleLanguageTagPrefix, Config.AudioLanguageTagPrefix, "subtitle_language_", "subtitle");
 
-        // Validate prefix: must be at least 3 characters and different from audio prefix
+    /// <summary>
+    /// Validates a prefix and ensures it's different from the other prefix.
+    /// </summary>
+    /// <param name="prefix">The prefix to validate.</param>
+    /// <param name="otherPrefix">The other prefix to compare against.</param>
+    /// <param name="defaultPrefix">The default prefix to use if validation fails.</param>
+    /// <param name="prefixType">The type of prefix for logging.</param>
+    /// <returns>The validated prefix.</returns>
+    private string GetValidatedPrefix(string prefix, string otherPrefix, string defaultPrefix, string prefixType)
+    {
+        // Validate prefix: must be at least 3 characters
         if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 3)
         {
-            return "subtitle_language_";
+            return defaultPrefix;
         }
 
-        // Ensure audio and subtitle prefixes are different
-        if (!string.IsNullOrWhiteSpace(audioPrefix) && prefix.Equals(audioPrefix, StringComparison.OrdinalIgnoreCase))
+        // Ensure prefixes are different
+        if (!string.IsNullOrWhiteSpace(otherPrefix) && prefix.Equals(otherPrefix, StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogWarning("Audio and subtitle prefixes cannot be identical. Using default subtitle prefix 'subtitle_language_'");
-            return "subtitle_language_";
+            _logger.LogWarning(
+                "Audio and subtitle prefixes cannot be identical. Using default {PrefixType} prefix '{DefaultPrefix}'",
+                prefixType,
+                defaultPrefix);
+            return defaultPrefix;
         }
 
         return prefix;

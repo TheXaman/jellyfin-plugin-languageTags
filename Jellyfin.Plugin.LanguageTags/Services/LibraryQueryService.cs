@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Jellyfin.Data.Enums;
@@ -33,41 +34,26 @@ public class LibraryQueryService
     /// </summary>
     /// <returns>List of movies.</returns>
     public List<Movie> GetMoviesFromLibrary()
-    {
-        return _libraryManager.QueryItems(new InternalItemsQuery
-        {
-            IncludeItemTypes = [BaseItemKind.Movie],
-            IsVirtualItem = false,
-        }).Items.OfType<Movie>().ToList();
-    }
+        => QueryItems<Movie>(BaseItemKind.Movie, query => query.IsVirtualItem = false);
 
     /// <summary>
     /// Gets all series from the library.
     /// </summary>
     /// <returns>List of series.</returns>
     public List<Series> GetSeriesFromLibrary()
-    {
-        return _libraryManager.QueryItems(new InternalItemsQuery
-        {
-            IncludeItemTypes = [BaseItemKind.Series],
-            Recursive = true,
-        }).Items.OfType<Series>().ToList();
-    }
+        => QueryItems<Series>(BaseItemKind.Series, query => query.Recursive = true);
 
     /// <summary>
     /// Gets all box sets from the library.
     /// </summary>
     /// <returns>List of box sets.</returns>
     public List<BoxSet> GetBoxSetsFromLibrary()
-    {
-        return _libraryManager.QueryItems(new InternalItemsQuery
+        => QueryItems<BoxSet>(BaseItemKind.BoxSet, query =>
         {
-            IncludeItemTypes = [BaseItemKind.BoxSet],
-            CollapseBoxSetItems = false,
-            Recursive = true,
-            HasTmdbId = true
-        }).Items.OfType<BoxSet>().ToList();
-    }
+            query.CollapseBoxSetItems = false;
+            query.Recursive = true;
+            query.HasTmdbId = true;
+        });
 
     /// <summary>
     /// Gets all seasons from a series.
@@ -75,16 +61,31 @@ public class LibraryQueryService
     /// <param name="series">The series to get seasons from.</param>
     /// <returns>List of seasons.</returns>
     public List<Season> GetSeasonsFromSeries(Series series)
-    {
-        var seasons = _libraryManager.QueryItems(new InternalItemsQuery
+        => QueryItems<Season>(BaseItemKind.Season, query =>
         {
-            IncludeItemTypes = [BaseItemKind.Season],
-            Recursive = true,
-            ParentId = series.Id,
-            IsVirtualItem = false
-        }).Items.OfType<Season>().ToList();
+            query.Recursive = true;
+            query.ParentId = series.Id;
+            query.IsVirtualItem = false;
+        });
 
-        return seasons;
+    /// <summary>
+    /// Common method to query items from the library.
+    /// </summary>
+    /// <typeparam name="T">The type of items to return.</typeparam>
+    /// <param name="itemKind">The kind of item to query.</param>
+    /// <param name="configureQuery">Action to configure the query.</param>
+    /// <returns>List of items of the specified type.</returns>
+    private List<T> QueryItems<T>(BaseItemKind itemKind, Action<InternalItemsQuery>? configureQuery = null)
+        where T : BaseItem
+    {
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = [itemKind]
+        };
+
+        configureQuery?.Invoke(query);
+
+        return _libraryManager.QueryItems(query).Items.OfType<T>().ToList();
     }
 
     /// <summary>
