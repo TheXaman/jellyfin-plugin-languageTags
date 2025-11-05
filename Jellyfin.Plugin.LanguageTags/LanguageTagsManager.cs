@@ -526,7 +526,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             synchronously).ConfigureAwait(false);
 
         _logger.LogInformation(
-            "Movies: processed {ProcessedCount}/{TotalCount} ({SkippedCount} skipped)",
+            "MOVIES - processed {Processed} of {Total} ({Skipped} skipped)",
             moviesProcessed,
             movies.Count,
             moviesSkipped);
@@ -545,10 +545,10 @@ public class LanguageTagsManager : IHostedService, IDisposable
         {
             var (audioLanguages, subtitleLanguages) = await ProcessVideo(video, subtitleTags, cancellationToken).ConfigureAwait(false);
 
-            if (audioLanguages.Count > 0 || subtitleLanguages.Count > 0)
+        if (audioLanguages.Count > 0 || subtitleLanguages.Count > 0)
             {
                 _logger.LogInformation(
-                    "Added languages for movie {MovieName} - Audio: [{AudioLanguages}], Subtitles: [{SubtitleLanguages}]",
+                    "MOVIE - {MovieName} - audio: {Audio} - subtitles: {Subtitles}",
                     movie.Name,
                     audioLanguages.Count > 0 ? string.Join(", ", audioLanguages) : "none",
                     subtitleLanguages.Count > 0 ? string.Join(", ", subtitleLanguages) : "none");
@@ -589,7 +589,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
             },
             synchronously).ConfigureAwait(false);
 
-        _logger.LogInformation("Processed {ProcessedSeries} of {TotalSeries} series", processedSeries, seriesList.Count);
+        _logger.LogInformation(
+            "SERIES - processed {Processed} of {Total} ({Skipped} skipped)",
+            processedSeries,
+            seriesList.Count,
+            skippedSeries);
     }
 
     private async Task ProcessSeries(Series series, bool fullScan, bool subtitleTags, CancellationToken cancellationToken)
@@ -690,18 +694,6 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 }
             }
 
-            // Log season processing summary
-            if (episodesProcessed > 0 || episodesSkipped > 0)
-            {
-                _logger.LogInformation(
-                    "SEASON {SeasonName} of {SeriesName}: processed {ProcessedCount}/{TotalCount} episodes ({SkippedCount} skipped)",
-                    season.Name,
-                    series.Name,
-                    episodesProcessed,
-                    episodes.Count,
-                    episodesSkipped);
-            }
-
             // Make sure we have unique language tags
             seasonAudioLanguages = seasonAudioLanguages.Distinct().ToList();
             seasonSubtitleLanguages = seasonSubtitleLanguages.Distinct().ToList();
@@ -716,20 +708,25 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
             // Add audio language tags to the season
             seasonAudioLanguages = await _tagService.AddAudioLanguageTagsOrUndefined(season, seasonAudioLanguages, cancellationToken).ConfigureAwait(false);
-            if (seasonAudioLanguages.Count > 0)
-            {
-                _logger.LogInformation("Added audio tags for SEASON {SeasonName} of {SeriesName}: {Languages}", season.Name, series.Name, string.Join(", ", seasonAudioLanguages));
-            }
 
             // Add subtitle language tags to the season
             if (seasonSubtitleLanguages.Count > 0 && subtitleTags)
             {
                 seasonSubtitleLanguages = await Task.Run(() => _tagService.AddLanguageTags(season, seasonSubtitleLanguages, TagType.Subtitle, convertFromIso: true), cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Added subtitle tags for SEASON {SeasonName} of {SeriesName}: {Languages}", season.Name, series.Name, string.Join(", ", seasonSubtitleLanguages));
             }
-            else if (subtitleTags)
+
+            // Log season-level summary, only if languages were found
+            if (episodesProcessed > 0 && ( seasonAudioLanguages.Count > 0 || seasonSubtitleLanguages.Count > 0))
             {
-                _logger.LogWarning("No subtitle information found for SEASON {SeasonName} of {SeriesName}", season.Name, series.Name);
+                _logger.LogInformation(
+                    "  SEASON - {SeriesName} - {SeasonName} - processed {Processed} episodes of {Total} ({Skipped} skipped) - audio: {Audio} - subtitles: {Subtitles}",
+                    series.Name,
+                    season.Name,
+                    episodesProcessed,
+                    episodes.Count,
+                    episodesSkipped,
+                    seasonAudioLanguages.Count > 0 ? string.Join(", ", seasonAudioLanguages) : "none",
+                    seasonSubtitleLanguages.Count > 0 ? string.Join(", ", seasonSubtitleLanguages) : "none");
             }
 
             // Save season changes to repository
@@ -746,20 +743,21 @@ public class LanguageTagsManager : IHostedService, IDisposable
 
         // Add audio language tags to the series
         seriesAudioLanguages = await _tagService.AddAudioLanguageTagsOrUndefined(series, seriesAudioLanguages, cancellationToken).ConfigureAwait(false);
-        if (seriesAudioLanguages.Count > 0)
-        {
-            _logger.LogInformation("Added audio tags for SERIES {SeriesName}: {Languages}", series.Name, string.Join(", ", seriesAudioLanguages));
-        }
 
         // Add subtitle language tags to the series
         if (seriesSubtitleLanguages.Count > 0 && subtitleTags)
         {
             seriesSubtitleLanguages = await Task.Run(() => _tagService.AddLanguageTags(series, seriesSubtitleLanguages, TagType.Subtitle, convertFromIso: true), cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Added subtitle tags for SERIES {SeriesName}: {Languages}", series.Name, string.Join(", ", seriesSubtitleLanguages));
         }
-        else if (subtitleTags)
+
+        // Log series-level summary, only if languages were found
+        if (seriesAudioLanguages.Count > 0 || seriesSubtitleLanguages.Count > 0)
         {
-            _logger.LogWarning("No subtitle information found for SERIES {SeriesName}", series.Name);
+            _logger.LogInformation(
+                "SERIES - {SeriesName} - audio: {Audio} - subtitles: {Subtitles}",
+                series.Name,
+                seriesAudioLanguages.Count > 0 ? string.Join(", ", seriesAudioLanguages) : "none",
+                seriesSubtitleLanguages.Count > 0 ? string.Join(", ", seriesSubtitleLanguages) : "none");
         }
 
         // Save series changes to repository
@@ -784,7 +782,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
             synchronously).ConfigureAwait(false);
 
         _logger.LogInformation(
-            "Collections: processed {ProcessedCount}/{TotalCount} ({SkippedCount} skipped)",
+            "COLLECTIONS - processed {Processed} of {Total} ({Skipped} skipped)",
             collectionsProcessed,
             collections.Count,
             collectionsSkipped);
@@ -843,7 +841,7 @@ public class LanguageTagsManager : IHostedService, IDisposable
         if (addedAudioLanguages.Count > 0 || addedSubtitleLanguages.Count > 0)
         {
             _logger.LogInformation(
-                "Added languages for collection {BoxSetName} - Audio: [{AudioLanguages}], Subtitles: [{SubtitleLanguages}]",
+                "COLLECTION - {CollectionName} - audio: {Audio} - subtitles: {Subtitles}",
                 collection.Name,
                 addedAudioLanguages.Count > 0 ? string.Join(", ", addedAudioLanguages) : "none",
                 addedSubtitleLanguages.Count > 0 ? string.Join(", ", addedSubtitleLanguages) : "none");
@@ -874,7 +872,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
             movies,
             async (movie, ct) => await ProcessMovieExternalSubtitles(movie, ct).ConfigureAwait(false),
             synchronously).ConfigureAwait(false);
-        _logger.LogInformation("Processed {ProcessedMovies} of {TotalMovies} movies", processedMovies, movies.Count);
+        _logger.LogInformation(
+            "EXTERNAL SUBTITLES - MOVIES - processed {Processed} of {Total} ({Skipped} skipped)",
+            processedMovies,
+            movies.Count,
+            skippedMovies);
 
         // Process collections
         var collections = _queryService.GetBoxSetsFromLibrary();
@@ -882,7 +884,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
             collections,
             async (collection, ct) => await ProcessCollectionExternalSubtitles(collection, ct).ConfigureAwait(false),
             synchronously).ConfigureAwait(false);
-        _logger.LogInformation("Processed {ProcessedCollections} of {TotalCollections} collections", processedCollections, collections.Count);
+        _logger.LogInformation(
+            "EXTERNAL SUBTITLES - COLLECTIONS - processed {Processed} of {Total} ({Skipped} skipped)",
+            processedCollections,
+            collections.Count,
+            skippedCollections);
 
         // Process series
         var seriesList = _queryService.GetSeriesFromLibrary();
@@ -902,7 +908,11 @@ public class LanguageTagsManager : IHostedService, IDisposable
                 }
             },
             synchronously).ConfigureAwait(false);
-        _logger.LogInformation("Processed {ProcessedSeries} of {TotalSeries} series", processedSeries, seriesList.Count);
+        _logger.LogInformation(
+            "EXTERNAL SUBTITLES - SERIES - processed {Processed} of {Total} ({Skipped} skipped)",
+            processedSeries,
+            seriesList.Count,
+            skippedSeries);
     }
 
     private async Task<bool> ProcessMovieExternalSubtitles(Movie movie, CancellationToken cancellationToken)
