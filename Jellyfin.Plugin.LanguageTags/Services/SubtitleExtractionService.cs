@@ -40,7 +40,7 @@ public class SubtitleExtractionService
             return new List<string>();
         }
 
-        var subtitleLanguages = video.SubtitleFiles
+        var subtitleLanguagesISO = video.SubtitleFiles
             .SelectMany(ExtractLanguageCodesFromFilename)
             .Distinct()
             .ToList();
@@ -48,16 +48,16 @@ public class SubtitleExtractionService
         _logger.LogInformation(
             "Final external subtitle languages for {VideoName}: [{Languages}]",
             video.Name,
-            string.Join(", ", subtitleLanguages));
+            string.Join(", ", subtitleLanguagesISO));
 
-        return subtitleLanguages;
+        return subtitleLanguagesISO;
     }
 
     /// <summary>
     /// Extracts language codes from a subtitle filename.
     /// </summary>
     /// <param name="subtitleFile">The subtitle filename.</param>
-    /// <returns>List of extracted language codes.</returns>
+    /// <returns>List of extracted language ISO codes.</returns>
     private IEnumerable<string> ExtractLanguageCodesFromFilename(string subtitleFile)
     {
         return SubtitleLanguageRegex.Matches(subtitleFile)
