@@ -632,6 +632,8 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
     {
         var audioLanguagesISO = new List<string>();
         var subtitleLanguagesISO = new List<string>();
+        var audioLanguagesName = new List<string>();
+        var subtitleLanguagesName = new List<string>();
 
         try
         {
@@ -644,7 +646,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
 
                 // Still try to add undefined tag if no sources found
                 await _tagService.AddAudioLanguageTagsOrUndefined(video, audioLanguagesISO, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist, scanContext.DisableUndefinedTags, cancellationToken).ConfigureAwait(false);
-                return (audioLanguagesISO, subtitleLanguages);
+                return (audioLanguagesISO, subtitleLanguagesISO);
             }
 
             foreach (var source in mediaSources)
@@ -702,9 +704,6 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             }
 
             // Add extracted languages if found
-            var audioLanguagesName = new List<string>();
-            var subtitleLanguagesName = new List<string>();
-
             if (audioLanguagesISO.Count > 0)
             {
                 // Add audio language tags
@@ -716,7 +715,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
                 await _tagService.AddAudioLanguageTagsOrUndefined(video, audioLanguagesISO, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist, scanContext.DisableUndefinedTags, cancellationToken).ConfigureAwait(false);
             }
 
-            if (subtitleTags && subtitleLanguages.Count > 0)
+            if (subtitleTags && subtitleLanguagesName.Count > 0)
             {
                 // Add subtitle language tags
                 subtitleLanguagesName = await Task.Run(() => _tagService.AddLanguageTags(video, subtitleLanguagesISO, TagType.Subtitle, convertFromIso: true, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist), cancellationToken).ConfigureAwait(false);
