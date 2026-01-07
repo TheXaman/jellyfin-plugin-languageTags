@@ -715,7 +715,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
                 await _tagService.AddAudioLanguageTagsOrUndefined(video, audioLanguagesISO, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist, scanContext.DisableUndefinedTags, cancellationToken).ConfigureAwait(false);
             }
 
-            if (subtitleTags && subtitleLanguagesName.Count > 0)
+            if (subtitleTags && subtitleLanguagesISO.Count > 0)
             {
                 // Add subtitle language tags
                 subtitleLanguagesName = await Task.Run(() => _tagService.AddLanguageTags(video, subtitleLanguagesISO, TagType.Subtitle, convertFromIso: true, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist), cancellationToken).ConfigureAwait(false);
