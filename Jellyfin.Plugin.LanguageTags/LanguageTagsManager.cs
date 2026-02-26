@@ -463,10 +463,6 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             var (newAudioLanguagesName, newSubtitleLanguagesName) =
                 await ProcessVideo(video, subtitleTags, scanContext, cancellationToken).ConfigureAwait(false);
 
-            // Save episode to repository
-            await episode.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken)
-                .ConfigureAwait(false);
-
             return (newAudioLanguagesName, newSubtitleLanguagesName, true);
         }
 
@@ -509,6 +505,13 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
         {
             _logger.LogWarning("No movies found in box set {BoxSetName}", collection.Name);
             return false;
+        }
+
+        // On full refresh, remove existing language tags from the collection first
+        if (fullRefresh)
+        {
+            _tagService.RemoveLanguageTags(collection, TagType.Audio, scanContext.AudioPrefix, scanContext.SubtitlePrefix);
+            _tagService.RemoveLanguageTags(collection, TagType.Subtitle, scanContext.AudioPrefix, scanContext.SubtitlePrefix);
         }
 
         // Get language tags from all movies in the box set

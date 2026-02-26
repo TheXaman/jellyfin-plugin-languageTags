@@ -200,7 +200,7 @@ public class LanguageTagService
 
         var undArray = new[] { "und" };
         return whitelistString.Split(Separator, StringSplitOptions.RemoveEmptyEntries)
-            .Select(lang => lang.Trim())
+            .Select(lang => lang.Trim().ToLowerInvariant())
             .Where(lang => lang.Length == 3) // Valid ISO 639-2/B codes
             .Distinct()
             .Concat(undArray) // Always include "undefined"

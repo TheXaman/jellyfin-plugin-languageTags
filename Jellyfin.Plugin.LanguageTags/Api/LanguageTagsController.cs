@@ -15,7 +15,7 @@ namespace Jellyfin.Plugin.LanguageTags.Api;
 /// The language tags Api controller.
 /// </summary>
 [ApiController]
-[Authorize]
+[Authorize(Roles = "Administrator")]
 [Route("[controller]")]
 [Produces(MediaTypeNames.Application.Json)]
 public class LanguageTagsController : ControllerBase, IDisposable
