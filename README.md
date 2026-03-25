@@ -18,6 +18,7 @@ Please note that LanguageTags will only work well if your media files are tagged
   - Full language names in tags (e.g., language_German)
   - Visual language selector for easier configuration
   - Tagging for non-media items (e.g., actors, studios) with toggles*
+  - TV Show Tagging: optionally restrict tagging to the root Series only (skip Seasons and Episodes)
 
 - Operations
   - Automatic scheduled scan (default: 24h)
@@ -57,6 +58,10 @@ These are the possible Parental Control settings you could use for an English-on
   - Audio (default): language_
   - Subtitles (default): subtitle_language_
   - Validation ensures safe characters
+- TV Show Tagging
+  - Disabled (default): Episodes, Seasons, and Series all receive language tags
+  - Enabled (Tag Series only): only the root Series item is tagged; language data is still read from episodes/seasons and aggregated upward. Prevents Jellyfin's tag view from being flooded with hundreds of individual episode entries.
+  - Note: enabling this does not remove previously applied tags from episodes/seasons. Run "Remove ALL language tags" first for a clean state.
 - Non-media tagging
   - Enable tagging for actors, studios etc. if needed
 - Scan mode
@@ -97,6 +102,10 @@ dotnet publish --configuration Release
   - Fallback handling for series when episodes reference seriesId directly
   - Improved logging for series/season queries
   - Less verbose LanguageTagsManager logs
+
+### v0.5.3.0
+- Features
+  - TV Show Tagging: new checkbox option to tag only the root Series (skipping Seasons and Episodes). Episode/season language data is still read and aggregated upward. Prevents Jellyfin's tag view from being flooded with hundreds of episode entries when filtering by language tag (#35)
 
 ### v0.5.1.0
 - Features & Maintenance

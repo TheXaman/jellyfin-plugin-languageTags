@@ -82,6 +82,18 @@
                         </div>
                         <hr />
                         <div class="checkboxContainer checkboxContainer-withDescription">
+                            <h3>TV Show Tagging</h3>
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="tv-show-series-only" name="tv-show-series-only" />
+                                <span>Tag Series only (skip Seasons and Episodes)</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                <p>When enabled, language tags are applied only to the root Series item. Episode and season language data is still read and aggregated upward — only the tagging of seasons and episodes is skipped. This prevents Jellyfin's tag view from being flooded with hundreds of individual episode entries.</p>
+                                <p><strong>Note:</strong> Enabling this does not remove previously applied tags from episodes/seasons. Use <em>Remove ALL language tags</em> first if you want a clean state.</p>
+                            </div>
+                        </div>
+                        <hr />
+                        <div class="checkboxContainer checkboxContainer-withDescription">
                             <h3>Undefined Language Tags</h3>
                             <label>
                                 <input is="emby-checkbox" type="checkbox" id="disable-undefined-tags" name="disable-undefined-tags" />
@@ -483,6 +495,8 @@
                             cb.checked = nonMediaTypes.includes(cb.value);
                         });
 
+                        document.getElementById("tv-show-series-only").checked = config.TagSeriesOnly;
+
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -523,6 +537,8 @@
                         config.NonMediaTag = document.getElementById("non-media-tag").value.trim() || "item";
                         var selectedNonMediaTypes = Array.from(document.querySelectorAll('.non-media-type:checked')).map(function(cb) { return cb.value; });
                         config.NonMediaItemTypes = selectedNonMediaTypes.join(',');
+
+                        config.TagSeriesOnly = document.getElementById("tv-show-series-only").checked;
 
                         ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                     });

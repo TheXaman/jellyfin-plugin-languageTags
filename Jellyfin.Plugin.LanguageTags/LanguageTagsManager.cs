@@ -86,7 +86,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             whitelist.Count,
             whitelist.Count > 0 ? string.Join(", ", whitelist) : "none");
 
-        LogScanConfiguration(fullScan, synchronously, subtitleTags);
+        LogScanConfiguration(fullScan, synchronously, subtitleTags, _configService.TagSeriesOnly);
 
         // Create scan context to pass parameters
         var scanContext = (audioPrefix, subtitlePrefix, whitelist, disableUndefinedTags);
@@ -394,20 +394,31 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             }
         }
 
-        // Add audio tags to season (languages are already converted from episodes)
-        if (seasonAudioLanguagesName.Count > 0)
-        {
-            seasonAudioLanguagesName = await Task.Run(
-                () => _tagService.AddLanguageTags(season, seasonAudioLanguagesName, TagType.Audio, convertFromIso: false, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist),
-                cancellationToken).ConfigureAwait(false);
-        }
+        var tagSeriesOnly = _configService.TagSeriesOnly;
 
-        // Add subtitle tags to season if enabled
-        if (seasonSubtitleLanguagesName.Count > 0 && subtitleTags)
+        if (!tagSeriesOnly)
         {
-            seasonSubtitleLanguagesName = await Task.Run(
-                () => _tagService.AddLanguageTags(season, seasonSubtitleLanguagesName, TagType.Subtitle, convertFromIso: false, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist),
-                cancellationToken).ConfigureAwait(false);
+            // Add audio tags to season (languages are already converted from episodes)
+            if (seasonAudioLanguagesName.Count > 0)
+            {
+                seasonAudioLanguagesName = await Task.Run(
+                    () => _tagService.AddLanguageTags(season, seasonAudioLanguagesName, TagType.Audio, convertFromIso: false, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            // Add subtitle tags to season if enabled
+            if (seasonSubtitleLanguagesName.Count > 0 && subtitleTags)
+            {
+                seasonSubtitleLanguagesName = await Task.Run(
+                    () => _tagService.AddLanguageTags(season, seasonSubtitleLanguagesName, TagType.Subtitle, convertFromIso: false, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist),
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+        else
+        {
+            // Tag Series only: deduplicate aggregated names before returning to the series
+            seasonAudioLanguagesName = seasonAudioLanguagesName.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            seasonSubtitleLanguagesName = seasonSubtitleLanguagesName.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         // Log season-level summary
@@ -424,8 +435,8 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
                 seasonSubtitleLanguagesName.Count > 0 ? string.Join(", ", seasonSubtitleLanguagesName) : "none");
         }
 
-        // Save season to repository
-        if (seasonAudioLanguagesName.Count > 0 || (seasonSubtitleLanguagesName.Count > 0 && subtitleTags))
+        // Save season to repository only when it was tagged
+        if (!tagSeriesOnly && (seasonAudioLanguagesName.Count > 0 || (seasonSubtitleLanguagesName.Count > 0 && subtitleTags)))
         {
             await season.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken)
                 .ConfigureAwait(false);
@@ -453,6 +464,16 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
         if (episode is not Video video)
         {
             return (new List<string>(), new List<string>(), false);
+        }
+
+        var tagSeriesOnly = _configService.TagSeriesOnly;
+
+        if (tagSeriesOnly)
+        {
+            // Extract language data without applying tags or saving the episode.
+            // The data still propagates up so seasons and series can be tagged correctly.
+            var (audioNames, subtitleNames) = await ProcessVideo(video, subtitleTags, scanContext, cancellationToken, applyTags: false).ConfigureAwait(false);
+            return (audioNames, subtitleNames, true);
         }
 
         var (shouldProcess, existingAudioLanguagesName, existingSubtitleLanguagesName) =
@@ -628,7 +649,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
         return (shouldProcess, existingAudioLanguagesName, existingSubtitleLanguagesName);
     }
 
-    private async Task<(List<string> AudioLanguages, List<string> SubtitleLanguages)> ProcessVideo(Video video, bool subtitleTags, (string AudioPrefix, string SubtitlePrefix, List<string> Whitelist, bool DisableUndefinedTags) scanContext, CancellationToken cancellationToken)
+    private async Task<(List<string> AudioLanguages, List<string> SubtitleLanguages)> ProcessVideo(Video video, bool subtitleTags, (string AudioPrefix, string SubtitlePrefix, List<string> Whitelist, bool DisableUndefinedTags) scanContext, CancellationToken cancellationToken, bool applyTags = true)
     {
         var audioLanguagesISO = new List<string>();
         var subtitleLanguagesISO = new List<string>();
@@ -644,9 +665,17 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
             {
                 _logger.LogWarning("No media sources found for VIDEO {VideoName}", video.Name);
 
-                // Still try to add undefined tag if no sources found
-                await _tagService.AddAudioLanguageTagsOrUndefined(video, audioLanguagesISO, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist, scanContext.DisableUndefinedTags, cancellationToken).ConfigureAwait(false);
-                return (audioLanguagesISO, subtitleLanguagesISO);
+                if (applyTags)
+                {
+                    // Still try to add undefined tag if no sources found
+                    await _tagService.AddAudioLanguageTagsOrUndefined(video, audioLanguagesISO, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist, scanContext.DisableUndefinedTags, cancellationToken).ConfigureAwait(false);
+                }
+                else if (!scanContext.DisableUndefinedTags)
+                {
+                    audioLanguagesName = _conversionService.ConvertIsoToLanguageNames(new List<string> { "und" });
+                }
+
+                return (audioLanguagesName, subtitleLanguagesISO);
             }
 
             foreach (var source in mediaSources)
@@ -703,31 +732,55 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
                 subtitleLanguagesISO.AddRange(externalSubtitlesISO);
             }
 
-            // Add extracted languages if found
-            if (audioLanguagesISO.Count > 0)
+            if (applyTags)
             {
-                // Add audio language tags
-                audioLanguagesName = await Task.Run(() => _tagService.AddLanguageTags(video, audioLanguagesISO, TagType.Audio, convertFromIso: true, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist), cancellationToken).ConfigureAwait(false);
-                _logger.LogDebug("Added audio tags for VIDEO {VideoName}: {AudioLanguages}", video.Name, string.Join(", ", audioLanguagesName));
+                // Add extracted languages if found
+                if (audioLanguagesISO.Count > 0)
+                {
+                    // Add audio language tags
+                    audioLanguagesName = await Task.Run(() => _tagService.AddLanguageTags(video, audioLanguagesISO, TagType.Audio, convertFromIso: true, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist), cancellationToken).ConfigureAwait(false);
+                    _logger.LogDebug("Added audio tags for VIDEO {VideoName}: {AudioLanguages}", video.Name, string.Join(", ", audioLanguagesName));
+                }
+                else
+                {
+                    await _tagService.AddAudioLanguageTagsOrUndefined(video, audioLanguagesISO, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist, scanContext.DisableUndefinedTags, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (subtitleTags && subtitleLanguagesISO.Count > 0)
+                {
+                    // Add subtitle language tags
+                    subtitleLanguagesName = await Task.Run(() => _tagService.AddLanguageTags(video, subtitleLanguagesISO, TagType.Subtitle, convertFromIso: true, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist), cancellationToken).ConfigureAwait(false);
+                    _logger.LogDebug("Added subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguagesName));
+                }
+                else if (subtitleTags)
+                {
+                    _logger.LogWarning("No subtitle information found for VIDEO {VideoName}", video.Name);
+                }
+
+                // Save video to repository only once after all tag modifications
+                await video.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
             }
             else
             {
-                await _tagService.AddAudioLanguageTagsOrUndefined(video, audioLanguagesISO, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist, scanContext.DisableUndefinedTags, cancellationToken).ConfigureAwait(false);
-            }
+                // Read-only mode: convert ISO codes to names without modifying the item
+                if (audioLanguagesISO.Count > 0)
+                {
+                    var filtered = _tagService.FilterOutLanguages(video, audioLanguagesISO, scanContext.Whitelist);
+                    audioLanguagesName = _conversionService.ConvertIsoToLanguageNames(filtered)
+                        .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                }
+                else if (!scanContext.DisableUndefinedTags)
+                {
+                    audioLanguagesName = _conversionService.ConvertIsoToLanguageNames(new List<string> { "und" });
+                }
 
-            if (subtitleTags && subtitleLanguagesISO.Count > 0)
-            {
-                // Add subtitle language tags
-                subtitleLanguagesName = await Task.Run(() => _tagService.AddLanguageTags(video, subtitleLanguagesISO, TagType.Subtitle, convertFromIso: true, scanContext.AudioPrefix, scanContext.SubtitlePrefix, scanContext.Whitelist), cancellationToken).ConfigureAwait(false);
-                _logger.LogDebug("Added subtitle tags for VIDEO {VideoName}: {SubtitleLanguages}", video.Name, string.Join(", ", subtitleLanguagesName));
+                if (subtitleTags && subtitleLanguagesISO.Count > 0)
+                {
+                    var filtered = _tagService.FilterOutLanguages(video, subtitleLanguagesISO, scanContext.Whitelist);
+                    subtitleLanguagesName = _conversionService.ConvertIsoToLanguageNames(filtered)
+                        .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                }
             }
-            else if (subtitleTags)
-            {
-                _logger.LogWarning("No subtitle information found for VIDEO {VideoName}", video.Name);
-            }
-
-            // Save video to repository only once after all tag modifications
-            await video.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -936,7 +989,7 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
     /// <summary>
     /// Logs the current scan configuration.
     /// </summary>
-    private void LogScanConfiguration(bool fullScan, bool synchronously, bool subtitleTags)
+    private void LogScanConfiguration(bool fullScan, bool synchronously, bool subtitleTags, bool tagSeriesOnly)
     {
         if (fullScan)
         {
@@ -951,6 +1004,11 @@ public sealed class LanguageTagsManager : IHostedService, IDisposable
         if (subtitleTags)
         {
             _logger.LogInformation("Extract subtitle languages enabled");
+        }
+
+        if (tagSeriesOnly)
+        {
+            _logger.LogInformation("TV show tagging: Tag Series only enabled");
         }
     }
 
