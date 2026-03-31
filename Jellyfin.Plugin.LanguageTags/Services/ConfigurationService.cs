@@ -63,6 +63,11 @@ public class ConfigurationService
     public string WhitelistLanguageTags => Config.WhitelistLanguageTags ?? string.Empty;
 
     /// <summary>
+    /// Gets a value indicating whether to tag only the root Series, skipping Seasons and Episodes.
+    /// </summary>
+    public bool TagSeriesOnly => Config.TagSeriesOnly;
+
+    /// <summary>
     /// Gets the validated audio language tag prefix.
     /// </summary>
     /// <returns>The validated audio language tag prefix.</returns>
