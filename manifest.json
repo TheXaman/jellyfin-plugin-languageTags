@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/TheXaman/jellyfin-plugin-languageTags/refs/heads/main/Images/logo.png",
     "versions": [
       {
+        "version": "0.5.3.0",
+        "changelog": "- feat: tag only whole TV Show, addresses #35\n- feat: add Tag Series Only checkbox to skip tagging Seasons and Episodes, addresses #35\" fix: added tagSeriesOnly to the scanContext fix: removed manual edits to auto generated files\n- feat: tag only whole TV Show, addresses #35\n- Update build.yaml and manifest.json for release version 0.5.2.2\n- Bump version to 0.5.2.2\n- fix: wrong variable check, addresses #32",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/TheXaman/jellyfin-plugin-languageTags/releases/download/v0.5.3.0/language-tags_0.5.3.0.zip",
+        "checksum": "8b6b11b949e5b4213f446843f2b9e651",
+        "timestamp": "2026-03-31T18:25:14Z"
+      },
+      {
         "version": "0.5.2.2",
         "changelog": "- Bump version to 0.5.2.2\n- fix: wrong variable check, addresses #32\n- Update build.yaml and manifest.json for release version 0.5.2.1\n- Bump version to 0.5.2.1\n- fix: incorrect variable names\n- Bump version to 0.5.2.0\n- fix: made sure series processing uses the correct language data types (iso, name) where appropriate, fixes #31\n- Merge pull request #30 from Rand0mB0y/patch-3\n- Revise README for LanguageTags plugin details\n- Updated the README to reflect the recent major changes",
         "targetAbi": "10.11.0.0",
