@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Logging;
@@ -115,6 +114,19 @@ public class LanguageTagService
     /// <returns>List of added languages.</returns>
     public List<string> AddLanguageTags(BaseItem item, List<string> languages, TagType type, bool convertFromIso, string audioPrefix, string subtitlePrefix, List<string> whitelist)
     {
+
+        if (item == null)
+        {
+            return [];
+        }
+
+        // check if the item has locked tags, if so skip adding language tags
+        if (item.LockedFields.Contains(MediaBrowser.Model.Entities.MetadataField.Tags))
+        {
+            _logger.LogWarning("Item {ItemName} has locked tags, skipping adding language tags", item.Name);
+            return [];
+        }
+
         // Make sure languages are unique
         languages = languages.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
